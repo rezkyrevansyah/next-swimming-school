@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx shadcn@latest add input label form card dialog select tabs table dropdown-menu avatar badge sonner --yes)",
+      "Bash(npx shadcn@latest add form --yes)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(npx @next/codemod@canary middleware-to-proxy .)",
+      "Bash(npx @next/codemod@canary middleware-to-proxy . --force)",
+      "Bash(ls d:/projects/next-swimming-school/*.ts)",
+      "Bash(npx supabase:*)",
+      "Bash(Out-File -FilePath lib/types/database.ts -Encoding utf8)"
+    ]
+  }
+}
