@@ -38,6 +38,7 @@ interface Props {
     health_history?: string | null;
   } | null;
   branch: { id: string; name: string } | null;
+  email: string | null;
 }
 
 function formatDate(dateStr: string) {
@@ -48,7 +49,7 @@ function formatDate(dateStr: string) {
   });
 }
 
-export function MemberProfileTab({ member, profile, branch }: Props) {
+export function MemberProfileTab({ member, profile, branch, email }: Props) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -165,6 +166,10 @@ export function MemberProfileTab({ member, profile, branch }: Props) {
               <div className="sm:col-span-2">
                 <dt className="text-muted-foreground">Riwayat Kesehatan</dt>
                 <dd className="mt-0.5">{profile?.health_history || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Email</dt>
+                <dd className="mt-0.5 font-mono text-xs">{email ?? "—"}</dd>
               </div>
             </dl>
           </CardContent>

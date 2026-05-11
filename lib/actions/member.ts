@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { createMemberSchema, updateMemberSchema } from "@/lib/schemas/member";
 import type { ActionResult } from "@/lib/types/common";
 import type { Tables } from "@/lib/types/database";
@@ -53,16 +53,17 @@ export async function createMember(
     payment_handling,
     school_id,
     email,
+    password,
   } = parsed.data;
 
-  // 1. Optionally create auth user
+  // 1. Optionally create auth user (requires service role key)
+  const adminClient = createAdminClient();
   let userId: string | null = null;
-  if (email) {
-    const tempPassword = Math.random().toString(36).slice(-10) + "A1!";
+  if (email && password) {
     const { data: authData, error: authError } =
-      await supabase.auth.admin.createUser({
+      await adminClient.auth.admin.createUser({
         email,
-        password: tempPassword,
+        password,
         email_confirm: true,
       });
 
@@ -280,7 +281,7 @@ export async function resetMemberPassword(
   const tempPassword =
     Math.random().toString(36).slice(-8).toUpperCase() + "1!";
 
-  const { error } = await supabase.auth.admin.updateUserById(userId, {
+  const { error } = await createAdminClient().auth.admin.updateUserById(userId, {
     password: tempPassword,
   });
 
@@ -288,3 +289,142 @@ export async function resetMemberPassword(
 
   return { data: { tempPassword } };
 }
+
+/**
+ * Approve a pending_payment member: set status = 'active',
+ * optionally create a Supabase auth account and assign role.
+ */
+export async function approveMember(
+  memberId: string,
+  options: { email?: string; branchId: string }
+): Promise<ActionResult<{ tempPassword?: string }>> {
+  const supabase = createClient(await cookies());
+
+  // Verify member exists and is pending_payment
+  const { data: member, error: fetchError } = await supabase
+    .from("members")
+    .select("id, status, has_account, user_id, branch_id")
+    .eq("id", memberId)
+    .single();
+
+  if (fetchError || !member) {
+    return { error: "Anggota tidak ditemukan." };
+  }
+  if (member.status !== "pending_payment") {
+    return { error: "Anggota bukan dalam status menunggu pembayaran." };
+  }
+
+  let userId = member.user_id;
+  let tempPassword: string | undefined;
+
+  // Create auth account if email provided and no account yet
+  if (options.email && !member.has_account) {
+    tempPassword = Math.random().toString(36).slice(-8).toUpperCase() + "1!";
+    const { data: authData, error: authError } =
+      await createAdminClient().auth.admin.createUser({
+        email: options.email,
+        password: tempPassword,
+        email_confirm: true,
+      });
+
+    if (authError) {
+      return { error: `Gagal membuat akun: ${authError.message}` };
+    }
+    userId = authData.user.id;
+
+    // Assign member role
+    const { data: memberRole } = await supabase
+      .from("roles")
+      .select("id")
+      .eq("name", "member")
+      .single();
+
+    if (memberRole) {
+      await supabase.from("user_roles").insert({
+        user_id: userId,
+        role_id: memberRole.id,
+        branch_id: options.branchId,
+      });
+    }
+  }
+
+  // Update member status to active
+  const { error: updateError } = await supabase
+    .from("members")
+    .update({
+      status: "active",
+      has_account: !!userId,
+      user_id: userId,
+    })
+    .eq("id", memberId);
+
+  if (updateError) {
+    return { error: `Gagal mengaktifkan anggota: ${updateError.message}` };
+  }
+
+  await logActivity(supabase, {
+    action: "approve_member",
+    resource_type: "members",
+    resource_id: memberId,
+    branch_id: member.branch_id,
+  });
+
+  revalidatePath("/a/member");
+  revalidatePath("/a/member/registrasi");
+  return { data: { tempPassword } };
+}
+
+export async function hardDeleteMember(id: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+
+  // Delete profile first (FK constraint)
+  await supabase.from("member_profiles").delete().eq("member_id", id);
+
+  // Delete the member row
+  const { error } = await supabase.from("members").delete().eq("id", id);
+  if (error) return { error: `Gagal menghapus anggota: ${error.message}` };
+
+  await logActivity(supabase, {
+    action: "hard_delete_member",
+    resource_type: "members",
+    resource_id: id,
+  });
+
+  revalidatePath("/a/member");
+  return { data: undefined };
+}
+
+/**
+ * Reject a pending_payment member: soft-delete the record.
+ */
+export async function rejectMember(memberId: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+
+  const { data: member } = await supabase
+    .from("members")
+    .select("branch_id")
+    .eq("id", memberId)
+    .single();
+
+  const { error } = await supabase
+    .from("members")
+    .update({ deleted_at: new Date().toISOString(), status: "inactive" })
+    .eq("id", memberId)
+    .eq("status", "pending_payment");
+
+  if (error) {
+    return { error: `Gagal menolak pendaftaran: ${error.message}` };
+  }
+
+  await logActivity(supabase, {
+    action: "reject_member",
+    resource_type: "members",
+    resource_id: memberId,
+    branch_id: member?.branch_id,
+  });
+
+  revalidatePath("/a/member");
+  revalidatePath("/a/member/registrasi");
+  return { data: undefined };
+}
+

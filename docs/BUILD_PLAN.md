@@ -9,13 +9,13 @@
 
 Before M1 starts, confirm:
 
-- [ ] Supabase project created (note URL + anon key + service role key)
+- [x] Supabase project created (note URL + anon key + service role key)
 - [ ] Vercel account ready
-- [ ] Cloudflare account (for R2, Phase 2)
-- [ ] Resend account (Phase 1.5)
+- [x] Cloudflare account (for R2) — R2 bucket `next-swimming-school` created, credentials in `.env.local`
+- [ ] Resend account (M7, not needed yet)
 - [ ] GitHub repo created
-- [ ] All 4 docs reviewed: AGENT_CONTEXT, MVP_SCOPE, PERMISSION_MATRIX, BUILD_PLAN
-- [ ] Owner email decided (for first-install)
+- [x] All 4 docs reviewed: AGENT_CONTEXT, MVP_SCOPE, PERMISSION_MATRIX, BUILD_PLAN
+- [x] Owner email decided (for first-install)
 
 ---
 
@@ -23,13 +23,13 @@ Before M1 starts, confirm:
 
 | ID | Milestone | Approx Duration |
 |---|---|---|
-| **M1** | Foundation | 1-2 weeks |
-| **M2** | Database + RBAC + RLS | 1-2 weeks |
-| **M3** | Admin CRUD (Members, Coaches, Classes) | 2-3 weeks |
-| **M4** | Coach Daily Flow | 1-2 weeks |
-| **M5** | Member Daily Flow | 1-2 weeks |
-| **M6** | Public Site + Self-Registration + Polish | 1-2 weeks |
-| **M7** | Phase 1 Hardening + Deploy | 1 week |
+| **M1** | Foundation | 1-2 weeks | ✅ DONE |
+| **M2** | Database + RBAC + RLS | 1-2 weeks | ✅ DONE |
+| **M3** | Admin CRUD (Members, Coaches, Classes) | 2-3 weeks | ✅ DONE |
+| **M4** | Coach Daily Flow | 1-2 weeks | 🔄 IN PROGRESS |
+| **M5** | Member Daily Flow | 1-2 weeks | — |
+| **M6** | Public Site + Self-Registration + Polish | 1-2 weeks | — |
+| **M7** | Phase 1 Hardening + Deploy | 1 week | — |
 
 **Total Phase 1:** 8-14 weeks (solo, quality-focused).
 
@@ -895,17 +895,27 @@ Verify Story G1-G2 from MVP_SCOPE.md.
 
 **Goal:** Coach can log in, clock-in, take attendance via QR scan or manual checklist.
 
-## M4.1 Coach Layout & Dashboard
+## M4.0 Storage & R2 Setup ✅ DONE
 
-### Tasks
-- [ ] Build coach layout (mobile-first with bottom nav):
-  - Dashboard, Absensi, Kelas, Member, Profil
-  - Settings menu in header
-- [ ] Build dashboard `/c/dashboard`:
-  - Greeting card
-  - "Hari Ini" section showing today's classes (sorted by time)
-  - Clock-in banner (per Story H1)
-  - Show "Tidak ada kelas" if empty
+### Completed
+- [x] Cloudflare R2 bucket `next-swimming-school` created
+- [x] `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` installed
+- [x] `lib/storage.ts` created: `uploadToR2`, `deleteFromR2`, `getR2SignedUrl`, `getR2PublicUrl`
+- [x] Env vars added: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`, `NEXT_PUBLIC_R2_PUBLIC_URL`
+
+### Pending packages (install when needed)
+- [ ] `qrcode` + `@types/qrcode` — install at M4.3
+- [ ] `@yudiel/react-qr-scanner` — install at M4.4
+- [ ] `resend` — install at M7
+
+---
+
+## M4.1 Coach Layout & Dashboard ✅ DONE
+
+### Completed
+- [x] Coach layout with sticky header (logo + logout) + bottom nav
+- [x] `/c/dashboard`: greeting dinamis, clock-in banner (amber=belum, hijau=sudah), kelas hari ini, quick links
+- [x] Data: coach profile, primary branch, today's schedules filtered by day_of_week, clock record check
 
 ### Acceptance Criteria
 Verify Story H1 from MVP_SCOPE.md.
@@ -917,88 +927,39 @@ Verify Story H1 from MVP_SCOPE.md.
   - Camera component using `getUserMedia` (front camera)
   - Capture button → preview → confirm
   - Geolocation request
-  - On submit: compress selfie, upload to Storage, calculate distance via Haversine
-- [ ] Server action `clockInCoach(data)`:
-  - Validate: has class today in this branch, not already clocked in
-  - Insert `coach_clock_records` row
+  - On submit: compress selfie via `browser-image-compression`, upload to R2 via `lib/storage.ts`, calculate distance via Haversine
+- [ ] Server action `clockIn(formData)` in `lib/actions/coach.ts`:
+  - Validate: not already clocked in today at this branch
+  - Insert `coach_clock_records` row with selfie URL + coords + distance
   - Log to activity_logs
 - [ ] Helper: `lib/utils/haversine.ts`
-- [ ] Component: `components/coach/clock-in/camera-capture.tsx`
-- [ ] Component: `components/coach/clock-in/result-display.tsx` (label + distance)
+- [ ] Component: `components/coach/camera-capture.tsx`
 
 ### Acceptance Criteria
 Verify Story H2 from MVP_SCOPE.md.
 
-## M4.3 QR Code Token System
+## M4.3 QR Code System ✅ DONE
 
-### Database change required: Yes (RPC for QR validation)
+### Design Decision (revised from original blueprint)
 
-> Run this in Supabase SQL Editor:
+> **QR code member bersifat STATIC** — berisi `member_id` (UUID) langsung, bukan rotating token.
+>
+> **Alasan:**
+> - Member bisa membawa **hasil print** QR code ke lokasi latihan — tidak perlu buka HP
+> - Admin print QR dari panel admin dan berikan ke member
+> - Lebih sederhana, tidak ada token expiry yang bisa bikin masalah (token habis saat mau absen)
+> - Coach scan → dapat `member_id` → server validasi member aktif + terdaftar di kelas
+> - `member_qr_tokens` table **tidak dipakai** untuk absensi
+>
+> **Trade-off keamanan:** QR tidak berubah, jadi kalau bocor bisa disalahgunakan. Mitigasi:
+> server tetap validasi `status = 'active'`, `deleted_at IS NULL`, dan `class_members.status = 'enrolled'`.
+> Jika ada insiden, admin bisa update `member_id` (nuclear option) — tidak perlu fitur khusus di Phase 1.
 
-```sql
--- ============================================================================
--- M4.3 - QR TOKEN VALIDATION RPC
--- ============================================================================
-
-CREATE OR REPLACE FUNCTION public.validate_qr_token(input_token TEXT)
-RETURNS TABLE (
-  member_id UUID,
-  member_name TEXT,
-  member_code TEXT,
-  is_valid BOOLEAN,
-  error_message TEXT
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  token_record RECORD;
-BEGIN
-  SELECT mqt.member_id, mqt.expires_at
-  INTO token_record
-  FROM public.member_qr_tokens mqt
-  WHERE mqt.token = input_token
-  ORDER BY mqt.created_at DESC
-  LIMIT 1;
-  
-  IF NOT FOUND THEN
-    RETURN QUERY SELECT NULL::UUID, NULL::TEXT, NULL::TEXT, FALSE, 'Token tidak ditemukan'::TEXT;
-    RETURN;
-  END IF;
-  
-  IF token_record.expires_at < NOW() THEN
-    RETURN QUERY SELECT NULL::UUID, NULL::TEXT, NULL::TEXT, FALSE, 'Token expired'::TEXT;
-    RETURN;
-  END IF;
-  
-  RETURN QUERY
-  SELECT 
-    m.id,
-    mp.full_name,
-    m.member_id_code,
-    TRUE,
-    NULL::TEXT
-  FROM public.members m
-  JOIN public.member_profiles mp ON mp.member_id = m.id
-  WHERE m.id = token_record.member_id
-    AND m.status = 'active'
-    AND m.deleted_at IS NULL;
-END;
-$$;
-
--- Grant execute to authenticated users (coach calls this)
-GRANT EXECUTE ON FUNCTION public.validate_qr_token TO authenticated;
-```
-
-### Tasks
-- [ ] Server action `generateQrToken(memberId)`:
-  - Creates random token (UUID + signed)
-  - Insert into `member_qr_tokens` with expires_at = NOW() + 30 sec
-  - Return token to client
-- [ ] Member page `/m/qr` displays QR (use `qrcode.react` library):
-  - Auto-refresh token every 30s via TanStack Query
-  - Fullscreen mode
-- [ ] Coach scan → calls `validate_qr_token` RPC
+### Completed
+- [x] `qrcode` + `@types/qrcode` installed
+- [x] `components/shared/member-qr-card.tsx` — QR canvas + Download PNG (dengan nama+kode) + Print popup
+- [x] Tab "QR Code" di `/a/member/[id]` — admin bisa unduh/print QR member
+- [x] `/m/qr` — fullscreen static QR untuk member, Wake Lock agar layar tidak mati
 
 ## M4.4 Coach Attendance Flow
 
@@ -1008,9 +969,9 @@ GRANT EXECUTE ON FUNCTION public.validate_qr_token TO authenticated;
   - Tab "Scan QR" with camera scanner (use `@yudiel/react-qr-scanner` or `html5-qrcode`)
   - Tab "Manual Checklist" with member list + status dropdown
   - Live count display
-- [ ] Server action `recordAttendanceByQr(token, classId)`:
-  - Validate token via RPC
-  - Check member is enrolled in class
+- [ ] Server action `recordAttendanceByQr(memberId, classId)`:
+  - Validate: member exists, status active, enrolled in class
+  - No token validation needed (QR is static, contains member_id directly)
   - Determine status (present/late based on timing)
   - Upsert into `attendance_records`
 - [ ] Server action `recordAttendanceManual(memberId, classId, status, date)`
@@ -1213,6 +1174,7 @@ Verify Story E1-E2 from MVP_SCOPE.md.
 ## M7.3 Deploy to Vercel
 
 ### Tasks
+- [ ] Setup Resend: install `resend`, create `lib/utils/email.ts`, setup welcome/reset email templates
 - [ ] Push to GitHub
 - [ ] Connect Vercel to GitHub repo
 - [ ] Add env vars in Vercel:
@@ -1220,6 +1182,13 @@ Verify Story E1-E2 from MVP_SCOPE.md.
   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
   - `SUPABASE_SERVICE_ROLE_KEY`
   - `NEXT_PUBLIC_APP_URL`
+  - `R2_ACCOUNT_ID`
+  - `R2_ACCESS_KEY_ID`
+  - `R2_SECRET_ACCESS_KEY`
+  - `R2_BUCKET_NAME`
+  - `R2_ENDPOINT`
+  - `NEXT_PUBLIC_R2_PUBLIC_URL`
+  - `RESEND_API_KEY`
 - [ ] Deploy
 - [ ] Setup custom domain (if available)
 - [ ] Update Supabase Auth redirect URLs to production domain
@@ -1289,6 +1258,6 @@ When in doubt, look at AGENT_CONTEXT.md Section 7 for patterns:
 
 ---
 
-**Document version:** 1.0
-**Last updated:** Phase 1 kickoff
-**Build status:** Not started → M1 ready to begin
+**Document version:** 1.3
+**Last updated:** 2026-05-10
+**Build status:** M1–M3 ✅ DONE · M4 🔄 IN PROGRESS (M4.1 done, working on M4.2)

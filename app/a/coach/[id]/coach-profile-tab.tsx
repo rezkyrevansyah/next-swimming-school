@@ -18,6 +18,12 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+interface Branch {
+  branch_id: string;
+  is_primary: boolean;
+  name: string;
+}
+
 interface Props {
   coach: { id: string; status: string };
   profile: {
@@ -28,9 +34,11 @@ interface Props {
     phone?: string | null;
     specializations?: string[] | null;
   } | null;
+  email: string | null;
+  branches: Branch[];
 }
 
-export function CoachProfileTab({ coach, profile }: Props) {
+export function CoachProfileTab({ coach, profile, email, branches }: Props) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -116,6 +124,25 @@ export function CoachProfileTab({ coach, profile }: Props) {
               <dt className="text-muted-foreground">Spesialisasi</dt>
               <dd className="mt-0.5">
                 {profile?.specializations?.join(", ") || "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Email</dt>
+              <dd className="mt-0.5 font-mono text-xs">{email ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Cabang</dt>
+              <dd className="mt-0.5">
+                {branches.length === 0
+                  ? "—"
+                  : branches.map((b) => (
+                      <span key={b.branch_id} className="inline-flex items-center gap-1 mr-2">
+                        {b.name}
+                        {b.is_primary && (
+                          <span className="text-xs bg-primary/10 text-primary rounded-full px-1.5 py-0.5">Utama</span>
+                        )}
+                      </span>
+                    ))}
               </dd>
             </div>
           </dl>

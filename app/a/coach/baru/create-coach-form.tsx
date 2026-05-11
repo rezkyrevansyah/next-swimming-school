@@ -122,7 +122,7 @@ export function CreateCoachForm({ branches }: { branches: Branch[] }) {
           <CardTitle>Akun &amp; Penugasan</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2 space-y-1.5">
+          <div className="space-y-1.5">
             <Label htmlFor="email">
               Email <span className="text-destructive">*</span>
             </Label>
@@ -130,9 +130,16 @@ export function CreateCoachForm({ branches }: { branches: Branch[] }) {
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email.message}</p>
             )}
-            <p className="text-xs text-muted-foreground">
-              Kata sandi sementara akan dibuat otomatis.
-            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="password">
+              Kata Sandi <span className="text-destructive">*</span>
+            </Label>
+            <Input id="password" type="password" {...register("password")} placeholder="Min. 8 karakter" />
+            {errors.password && (
+              <p className="text-xs text-destructive">{errors.password.message}</p>
+            )}
           </div>
 
           <div className="sm:col-span-2 space-y-1.5">

@@ -128,3 +128,26 @@
     @apply font-sans;
   }
 }
+
+/* Public site animations */
+@keyframes wave-slow {
+  0%, 100% { transform: translateX(0) scaleY(1); }
+  50% { transform: translateX(-2%) scaleY(0.97); }
+}
+@keyframes wave-med {
+  0%, 100% { transform: translateX(0) scaleY(1); }
+  50% { transform: translateX(1.5%) scaleY(1.03); }
+}
+@keyframes float-up {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes ripple {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+.animate-wave-slow { animation: wave-slow 9s ease-in-out infinite; }
+.animate-wave-med  { animation: wave-med  6s ease-in-out infinite; }
+.animate-float     { animation: float-up  5s ease-in-out infinite; }
+.animate-ripple    { animation: ripple    2s ease-out infinite; }

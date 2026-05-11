@@ -295,10 +295,10 @@ export function CreateMemberForm({ branches }: Props) {
         <CardHeader>
           <CardTitle>Akun Aplikasi (Opsional)</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <p className="sm:col-span-2 text-sm text-muted-foreground">
             Jika diisi, anggota akan mendapatkan akun untuk login ke aplikasi.
-            Kata sandi sementara akan dibuat otomatis.
+            Isi email dan kata sandi yang bisa digunakan untuk login.
           </p>
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
@@ -310,6 +310,18 @@ export function CreateMemberForm({ branches }: Props) {
             />
             {errors.email && (
               <p className="text-xs text-destructive">{errors.email.message}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Kata Sandi</Label>
+            <Input
+              id="password"
+              type="password"
+              {...register("password")}
+              placeholder="Min. 8 karakter"
+            />
+            {errors.password && (
+              <p className="text-xs text-destructive">{errors.password.message}</p>
             )}
           </div>
         </CardContent>

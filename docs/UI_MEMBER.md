@@ -282,10 +282,12 @@ Datang ke kelas pertama kamu untuk mulai!
 - Swipe down to close (gesture)
 - Take advantage of full screen height
 
-**Token rotation logic:**
-- On page mount: generate token, set 30s timer
-- Every 30s: regenerate token, refresh QR
-- Clean up on unmount
+**QR logic (revised):**
+- QR bersifat **static** — berisi `member_id` UUID langsung
+- Tidak ada rotating token, tidak ada timer refresh
+- On page mount: render QR dari member_id via `qrcode` library ke canvas
+- Wake Lock API aktif agar layar tidak mati selama QR ditampilkan
+- Member bisa juga bawa **hasil print** QR dari admin — tidak harus buka HP
 
 ---
 

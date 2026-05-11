@@ -52,6 +52,12 @@ export const createMemberSchema = z.object({
     .email("Format email tidak valid")
     .optional()
     .or(z.literal("")),
+  password: z
+    .string()
+    .min(8, "Kata sandi minimal 8 karakter")
+    .max(72, "Kata sandi maksimal 72 karakter")
+    .optional()
+    .or(z.literal("")),
 });
 
 export const updateMemberSchema = createMemberSchema.partial().extend({

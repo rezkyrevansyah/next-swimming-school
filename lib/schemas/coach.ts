@@ -14,6 +14,10 @@ export const createCoachSchema = z.object({
 
   // Account (required for coach)
   email: z.string().email("Format email tidak valid"),
+  password: z
+    .string()
+    .min(8, "Kata sandi minimal 8 karakter")
+    .max(72, "Kata sandi maksimal 72 karakter"),
 
   // Assignment
   branch_id: z.string().uuid("Cabang tidak valid"),

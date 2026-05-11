@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={inter.variable}>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className="min-h-screen flex flex-col bg-background font-sans antialiased">
         <Providers>{children}</Providers>
         <Toaster richColors position="top-right" />
       </body>

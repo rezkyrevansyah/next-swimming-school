@@ -135,7 +135,8 @@ Nice-to-have, defer until Tier A+B is solid.
 **Acceptance Criteria:**
 - [ ] `/a/member/[id]` shows tabs: Profil, Kelas, Absensi, Pembayaran, Log
 - [ ] (Rapot tab is Phase 2, hidden in Phase 1)
-- [ ] Profil tab: foto besar, semua field, QR code (preview + download), tombol "Direct WA" yang buka `wa.me/{phone}`
+- [ ] Profil tab: foto besar, semua field, tombol "Direct WA" yang buka `wa.me/{phone}`
+- [ ] QR Code tab: tampilkan QR static member (berisi member_id), tombol Unduh PNG + Print
 - [ ] Kelas tab: list kelas yang diikuti + add/remove kelas
 - [ ] Absensi tab: history dengan filter date range
 - [ ] Pembayaran tab: [TIER B — see 4.1]
@@ -287,10 +288,11 @@ Nice-to-have, defer until Tier A+B is solid.
 - [ ] Page has 2 tabs: "Scan QR" and "Manual Checklist"
 - [ ] Scan QR tab:
   - Camera opens, scans QR codes continuously
-  - On scan: validate token (not expired), match to member, insert attendance record
+  - On scan: read member_id from QR, validate member is active + enrolled in this class, insert attendance record
   - Show success toast: "✓ {nama} hadir"
   - Late detection: if `now > class_start + 15 min`, status = "late" with toast warning
   - Duplicate scan: ignored, show toast "Sudah tercatat hadir"
+  - Invalid/unknown QR: show toast "QR tidak dikenali"
 - [ ] Manual Checklist tab:
   - List all class members (regular + affiliate placeholder for Phase 2)
   - Per member: status dropdown (Hadir / Izin / Sakit / Alpha)
@@ -339,11 +341,13 @@ Nice-to-have, defer until Tier A+B is solid.
 
 **Acceptance Criteria:**
 - [ ] `/m/qr` opens fullscreen with QR
-- [ ] QR uses rotating signed JWT token, refresh every 30 seconds
-- [ ] Below QR: nama lengkap, member_id_code, kelas aktif
-- [ ] Brightness max attempted via JS (where supported)
+- [ ] QR is **static** — encodes `member_id` (UUID) directly, no rotating token
+- [ ] QR never changes unless admin explicitly generates a new one
+- [ ] Member can also carry a **printed** version (admin prints from detail page)
+- [ ] Below QR: nama panggilan, member_id_code
+- [ ] Brightness max attempted via Wake Lock API (screen stays on)
 - [ ] "Tutup" button to exit
-- [ ] Token validation: server-side, expired tokens rejected
+- [ ] Coach scan → reads member_id → server validates member is active + enrolled
 
 **Story I3:** As a member, I want to see my attendance history, so that I can track my participation.
 

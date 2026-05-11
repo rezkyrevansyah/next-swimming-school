@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useState, useTransition } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth";
 import { signIn } from "@/lib/actions/auth";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 export function LoginForm() {
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -78,15 +80,25 @@ export function LoginForm() {
       {/* Password */}
       <div className="space-y-1.5">
         <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          placeholder="••••••••"
-          aria-describedby={errors.password ? "password-error" : undefined}
-          className={cn(errors.password && "border-destructive")}
-          {...register("password")}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            aria-describedby={errors.password ? "password-error" : undefined}
+            className={cn("pr-10", errors.password && "border-destructive")}
+            {...register("password")}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
         {errors.password && (
           <p id="password-error" className="text-xs text-destructive">
             {errors.password.message}

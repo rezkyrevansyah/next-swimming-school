@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,5 +26,18 @@ export const createClient = (cookieStore: Awaited<ReturnType<typeof cookies>>) =
         },
       },
     },
+  );
+};
+
+/**
+ * Admin client using service role key.
+ * ONLY use in server actions / API routes — never expose to client.
+ * Required for auth.admin.* operations (createUser, deleteUser, etc.)
+ */
+export const createAdminClient = () => {
+  return createSupabaseClient(
+    supabaseUrl!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
   );
 };

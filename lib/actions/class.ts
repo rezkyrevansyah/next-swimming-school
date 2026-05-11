@@ -130,6 +130,21 @@ export async function restoreClass(id: string): Promise<ActionResult> {
   return { data: undefined };
 }
 
+export async function hardDeleteClass(id: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+
+  // Delete related records first
+  await supabase.from("class_schedules").delete().eq("class_id", id);
+  await supabase.from("class_coaches").delete().eq("class_id", id);
+  await supabase.from("class_members").delete().eq("class_id", id);
+
+  const { error } = await supabase.from("classes").delete().eq("id", id);
+  if (error) return { error: `Gagal menghapus kelas: ${error.message}` };
+
+  revalidatePath("/a/kelas");
+  return { data: undefined };
+}
+
 // ── Schedules ────────────────────────────────────────────────────────────────
 
 export async function saveSchedules(
@@ -231,6 +246,142 @@ export async function unassignCoach(
   });
 
   revalidatePath(`/a/kelas/${classId}`);
+  return { data: undefined };
+}
+
+// ── Attendance ────────────────────────────────────────────────────────────────
+
+const LATE_THRESHOLD_MINUTES = 15;
+
+export async function recordAttendanceByQr(
+  scannedMemberId: string,
+  classId: string,
+  sessionDate: string // YYYY-MM-DD
+): Promise<ActionResult<{ memberName: string; status: string }>> {
+  const supabase = createClient(await cookies());
+
+  // Get coach id
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { data: coach } = await supabase
+    .from("coaches")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  // Validate member: active, not deleted, enrolled in this class
+  const { data: member } = await supabase
+    .from("members")
+    .select(`id, status, deleted_at, member_profiles(full_name)`)
+    .eq("id", scannedMemberId)
+    .single();
+
+  if (!member || member.deleted_at || member.status !== "active") {
+    return { error: "Member tidak ditemukan atau tidak aktif." };
+  }
+
+  const { data: enrollment } = await supabase
+    .from("class_members")
+    .select("status")
+    .eq("class_id", classId)
+    .eq("member_id", scannedMemberId)
+    .single();
+
+  if (!enrollment || enrollment.status !== "enrolled") {
+    return { error: "Member tidak terdaftar di kelas ini." };
+  }
+
+  // Get class schedule for today to determine late status
+  const todayDow = new Date().getDay();
+  const { data: schedule } = await supabase
+    .from("class_schedules")
+    .select("start_time")
+    .eq("class_id", classId)
+    .eq("day_of_week", todayDow)
+    .maybeSingle();
+
+  let attendanceStatus: "present" | "late" = "present";
+  if (schedule?.start_time) {
+    const [h, m] = schedule.start_time.split(":").map(Number);
+    const classStart = new Date();
+    classStart.setHours(h, m, 0, 0);
+    const diffMin = (Date.now() - classStart.getTime()) / 60_000;
+    if (diffMin > LATE_THRESHOLD_MINUTES) attendanceStatus = "late";
+  }
+
+  // Get branch_id from class
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("branch_id")
+    .eq("id", classId)
+    .single();
+
+  // Upsert attendance (duplicate = already recorded)
+  const { error } = await supabase
+    .from("attendance_records")
+    .insert({
+      member_id: scannedMemberId,
+      class_id: classId,
+      branch_id: cls?.branch_id ?? "",
+      session_date: sessionDate,
+      status: attendanceStatus,
+      recorded_by_coach_id: coach?.id ?? null,
+      scanned_at: new Date().toISOString(),
+      scan_method: "qr",
+    });
+
+  if (error) {
+    if (error.code === "23505") return { error: "DUPLICATE" }; // already recorded
+    return { error: `Gagal menyimpan absensi: ${error.message}` };
+  }
+
+  const profile = Array.isArray(member.member_profiles)
+    ? member.member_profiles[0]
+    : member.member_profiles;
+
+  return { data: { memberName: profile?.full_name ?? "—", status: attendanceStatus } };
+}
+
+export async function recordAttendanceManual(
+  memberId: string,
+  classId: string,
+  sessionDate: string,
+  status: "present" | "late" | "permitted" | "sick" | "absent"
+): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { data: coach } = await supabase
+    .from("coaches")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("branch_id")
+    .eq("id", classId)
+    .single();
+
+  // Upsert: update if exists, insert if not
+  const { error } = await supabase
+    .from("attendance_records")
+    .upsert({
+      member_id: memberId,
+      class_id: classId,
+      branch_id: cls?.branch_id ?? "",
+      session_date: sessionDate,
+      status,
+      recorded_by_coach_id: coach?.id ?? null,
+      scan_method: "manual",
+    }, { onConflict: "member_id,class_id,session_date" });
+
+  if (error) return { error: `Gagal menyimpan absensi: ${error.message}` };
+
+  revalidatePath(`/c/absensi/${classId}`);
   return { data: undefined };
 }
 

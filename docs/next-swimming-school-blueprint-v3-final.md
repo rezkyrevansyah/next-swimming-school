@@ -294,10 +294,13 @@ Cards:
 8. **Banner pembayaran (kalau overdue):** "Tagihan bulan ini belum dibayar" + tombol kirim bukti via WA
 
 ### 7.4 Member QR
-- Fullscreen mode dengan brightness max
-- QR besar di tengah dengan rotating JWT token (refresh tiap 30 detik)
-- Nama member, ID, kelas aktif
-- **Mobile-optimized:** fullscreen API, prevent screen lock saat aktif
+- Fullscreen mode dengan brightness max (Wake Lock API)
+- QR besar di tengah — **static, berisi `member_id` UUID langsung** (bukan rotating token)
+- QR tidak pernah berubah kecuali admin generate ulang secara manual
+- Member bisa membawa **hasil print** QR — tidak harus buka HP saat latihan
+- Admin dapat unduh/print QR dari tab "QR Code" di detail member (`/a/member/[id]`)
+- Coach scan → baca `member_id` → server validasi aktif + terdaftar di kelas
+- **Mobile-optimized:** Wake Lock API agar layar tidak mati saat menampilkan QR
 
 ### 7.5 Coach Dashboard
 
@@ -529,8 +532,8 @@ member_profiles
 - parent_name, parent_phone
 - address, health_history
 
-member_qr_tokens (rotating)
-- member_id, token, expires_at
+member_qr_tokens (tidak dipakai untuk absensi — QR bersifat static berisi member_id)
+- member_id, token, expires_at (tabel tetap ada di schema, reserved untuk future use)
 ```
 
 ### Coaches (Multi-Branch)
@@ -823,7 +826,7 @@ Keputusan kunci yang sudah disepakati:
 |---|---|
 | Multi-cabang | Single DB, branch_id di setiap tabel (multi-branch, BUKAN multi-tenant) |
 | Self-registration | Member regular self-service via WA. Coach: admin-only |
-| Absensi | Coach scan QR member + checklist manual untuk afiliasi |
+| Absensi | Coach scan QR member (static, berisi member_id) + checklist manual untuk afiliasi |
 | Pembayaran | Manual recording, tagihan auto-generate awal bulan, regular only |
 | Rapot | Free-form text + skill rating 1-5 + goals achieved |
 | GPS | Haversine + log + label warning, no anti-fake-strict |
@@ -851,7 +854,7 @@ Keputusan kunci yang sudah disepakati:
 
 Hal-hal kecil yang tidak menghambat blueprint tapi perlu diputuskan saat coding:
 
-1. **QR token expiry exact** — 30 detik atau 60 detik?
+1. ~~**QR token expiry exact**~~ — **RESOLVED:** QR bersifat static (berisi member_id), tidak ada expiry. Member bisa print QR.
 2. **Late threshold** — 15 menit setelah jam mulai? (current default)
 3. **Image compression quality** — exact bytes per type sudah disebutkan, tinggal eksekusi
 4. **PDF rapot template design** — perlu desain visual yang detail (bisa di design system file)

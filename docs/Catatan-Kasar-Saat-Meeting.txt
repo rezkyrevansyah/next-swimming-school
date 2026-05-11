@@ -1,0 +1,102 @@
+konteks:
+
+saya ini seorang freelancer, kebanyakan client saya itu bikin web di saya. nah ini ada client bernama mas syahril dengan bisnisnya next swimming school. ingin membuat web app untuk mengelola sekolah renangnya. nah kemarin kita first meet up offline, dia sudah menjelaskan gambaran besarnya, tapi menurut saya belum matang, karena masih perlu ide saya untuk memberikan ide lebih detail lagi bagusnya seperti apa dibuatkan webnya. khususnya flownya yaa, karena brief di bawah ini masih catatan kasar dan belum yang rapih, flownya juga masih ngejelimet, jadi saya perlu penjelasan flow rapih + ide-ide yang yang perlu kamu berikan, karena di bawah ini saya masih perlu ide kamu untuk keseluruhan baiknya seperti apa, apakah ada yang perlu dikurangi atau ditambahkan
+
+yang diperlukan client saya ini:
+- landing page
+- admin page (ada berbagai role seperti admin, owner, dll. ada CMSnya juga)
+> admin panel
+> coach panel
+> member panel
+- coach page (untuk absensi, informasi terkait kelasnya, siswanya, input rapot, rekap absensi dan sebagainya)
+- member page (untuk melihat absensi, feedback coach setiap 1 semester atau per 6 bulan, menampilkan qr untuk discan pelatih untuk absensi, melihat rapot, dan sebagainya)
+
+tujuan:
+- bisa jadi ini akan menjadi sekolah renang pertama yang memiliki sistem, jadi dari sisi saya sebagai freelancer itu juga harus deliver project yang maksimal dengan ide dan konsep yang matang
+- landing page bisa muncul nomor 1 di google, jadi SEO harus sangat baik
+- flow sistem jelas dan matang, no error karena menyangkut member dan coach juga
+
+gambaran sistem:
+1. landing page: berisi landing page kelas dunia yang memiliki desain yang modern, smooth, clean. yang ingin di tampilkan di landing page saat ini hanya terpikirkan kenapa memilih next swimming school, programnya apa saja, berita terbaru, informasi, kontak. jadi landing page masih belum matang yang bagusnya seperti apa 
+
+2. Admin Panel: (BUTUH IDE TAMBAHAN BERUPA FLOW YANG BEST PRACTICE SEPERTI APA BAIKNYA ATAU ISINYA SEPERTI APA)
+- bisa CRUD membuat role baru dan memilih role tersebut bisa akses halaman apa saja/menu apa saja
+- bisa CRUD user untuk connect dengan role yang sudah dibuat
+- bisa CRUD member
+- bisa CRUD pelatih 
+- bisa CRUD kelas
+- bisa CRUD event/lomba
+- log aktifitas admin panel
+- ada tampilan calendar (butuh ide konsepnya yang bagus kyk gimana)
+- ada tampilan dashboard 
+> menampilkan total member, total coaches, class this week, attendance rate
+> aktifitas absensi terbaru baik dari coaches ataupun member
+> kelas mendatang
+- ada tampilan member management
+> bisa liat list member
+> bisa liat detail profil member (isinya ada foto, nama lengkap, nama panggilan, tanggal lahir, email, nomer hp (bisa nomer hp siswanya atau orang tuanya, prefer nanti saat crud bisa dipilih), join date, parents name, umur, statusnya (aktif atau tidak aktif). kelas yang diikuti apa saja, coachnya siapa, ID Membernya apa, QR Code siswa yang bisa didownload. nah tapi untuk yang ditampilkan di tabel di dalam member management bisa diatur aja yang bagusnya gimana, nnti disediakan juga button lihat detail. 
+note: dikatakan aktif itu jika sudah melakukan pembayaran di wa, lalu admin input data manual, atau nanti bisa juga dengan opsi dikirimkan register page untuk user mengisikan itu sendiri, nanti akan muncul di admin panel list user yang daftar, bisa dicek detailnya yang sudah diisi dan disediakan button approved, unapproved, approved jika setelah user regist, itu nnti akan ada button untuk direct ke wa untuk user kirim bukti transfer atau pembayaran
+> bisa liat rekapitulasi absensi keseluruhan dari dulu sampai sekarang (ekspektasinya selain list rekapitulasi ada ada card-card yang informatif juga)
+> bisa edit atau hapus absensi
+> bisa liat rekap seluruh rapot siswa. berupa list dan juga bisa dilihat juga detailnya, disediakan button lihat detail. isi rapot masih perlu dimatengkan lagi tapi yang ditampilkan dilist tabel itu, nama, umur, kelas, attendance rate (in percen), skill level, goal achived, status. nah ini itu diisi dari coach page, setelah dia mengisi rapot siswa akan muncul di member management ini. 
+- ada tampilan financial data
+- ada tampilan coach management
+> list coach 
+> detail profil coach (isinya ada foto, nama lengkap, nama panggilan, tanggal lahir, email, phone, joined date, spesialisasi, coach ID, coach QR Code) untuk yang ditampilkan di list tabel coach perlu ada penyesuaian baiknya apa yang ditampilin, nanti ada button lihat detail
+- ada tampilan class management
+> bisa crud kelas, data kelasnya itu nama kelas, untuk umur berapa, schedulenya kapan, lokasinya dimana, kapasitas kelasnya berapa, coachnya siapa aja, membernya siapa aja
+- ada tampilan financial data (butuh ide baiknya gimana, tapi yang pasti ada revenue, active member, outstanding, payment history (mungkin bisa disconnect juga setelah register member yang sudah acc pembayarannya, itu bisa masuk sini), financial report, atau mungkin ada sistem pembagian gaji atau seperti apa deh baiknya.)
+
+others:
+- ada cms untuk berita dan informasi
+- ada reminder menu untuk admin bisa kirim WhatsApp reminder terhadap sesi siswa 
+- untuk owner itu dia bisa CRUD cabang, sekaligus assign manager cabang tersebut, jadi jika cabang B itu butuh sistem, bisa pakai sistem kita ini, atau sistemnya gimana ya baiknya, karena nanti kedepannya ada case pembukaan cabang baru, jadi di setiap cabang sistemnya harus terpisah tapi dengan fungsi yang sama persis kayak gini, nah owner juga mau ada helikoper view untuk bisa ngeliat data semuanya
+- pelatih gajinya itu berbeda beda setiap section
+- ada export to csv dan excel di halaman yang mengandung data
+- ada menu untuk acc sertifikasi pelatih, karena nanti pada saat registrasi coach itu nanti coach bisa input sertifikasi, nanti harus diacc dulu sama owner, nah itu dia nanti pelatih upload foto sertifikasinya. jadi ntar coach itu ada halaman registrasinya sendiri untuk register mandiri ataupun bisa oleh admin, sertifikatnya itu jadi upload foto sertifikat, nama sertifikat, tahun berapa, berlaku sampai kapan, ada pilihan checklist juga jika tidak ada batas waktu berlaku, nanti coach juga harus upload foto profil dia.
+- di admin page ini kita bisa melihat generated rapot untuk siswa yang sudah didesain pdf nya dengan desain rapot pdf yang estetik dan juga bisa melihat review untuk coach oleh siswa/orang tua siswa, yang dimana mereka berikan setelah coach itu memberi rapot ke siswa. di rapot siswa itu harus ada foto siswanya.
+- perlu menu untuk admin bisa approved perubahan yang direquest oleh member atau coach, misal mau ada perubahan pada detail profil mereka, itu mereka perlu approval dulu
+- perlu ada menu juga untuk list anak yang sudah diberikan rapot oleh coach, jadi admin bisa ada button direct ke wa untuk memberi tau bahwa rapot sudah keluar
+- bisa mengatur waktu semesternya, misal semester 1 itu dari tanggal bulan tahun berapa sampai berapa
+- lalu bisa mengatur timeline pembagian rapot juga, jadi di dalam timeline itu coach wajib input nilai, jika lewat nanti akses input rapot akan otomatis hilang
+- setelah member selesai lomba, akan ada histiry lomba, catatan waktunya, coah bisa input dan juga admin bisa input juga
+- orang tua bilang sakit, ada absensi bukan alpha, ada izin, nnti admin yang input
+- attendance rate ada izin brp kali, masuk brp kali, dll
+- qr code itu ada kerja sama sm sekolah sm ekskul rensng, tidak ada data, jdi ada absensi yang yang bisa dichecklist 1 1 oleh coach
+- ada template registasri dari excel ke sistem
+- bisa jadi ada 4 coach absen barengan, nah itu datanya jangan ketimpa saat absen
+- nnti ada case coach izin. nnti harus cari pengganti, jadi nnti coach pengganti yg punya akses absen dan data hadirnya digantikan ke coach pengganti
+- ada akses role untuk sekolah ke admin panel untuk melihat report anaknya
+- ada label untuk member dia itu afiliasi atau murid asli
+
+3. Member Page
+Member panel: konteksnya jadi murid di next swimming school ini ada dari anak kecil sampai orang dewasa, jadi untuk sistem ini nantinya untuk yang anak kecil, kemungkinan yang memegang akunnya yaitu orang tuanya, jadi nanti saat diregistrasi oleh admin atau di halaman register mandiri, itu ada pilihan nomor sendiri atau nomor orang tua. ya ga sih? kayaknya baiknya gitu ya
+
+- member page ini adalah pov member, jadi member login akan melihat informasi yang memang diperlukan saja untuk dia
+- perlu ada calendar (perlu saran bagusnya apa saja yang ditampilkan dan konsep calendarnya seperti apa)
+- member profilenya sesuai yang diregistrasiin, dan bisa update juga tapi perlu approval ke admin 
+- ada tampilan qr codenya (jadi nanti sistem absen di sekolah renang ini, member saat datang ke kolam renang, itu dia tinggal nunjukin qr codenya, lalu nanti pelatih yang scan qr code mereka, nanti otomatis absensi siswa akan masuk)
+- ada data absensi yang pernah dilakukan
+- bisa melihat data coach mereka serta button untuk direct ke WhatsApp coach
+- bisa filter date absensi
+- bisa lihat kelas yang dia ikuti
+- bisa lihat hasil rapot
+- bisa lihat hasil rapot dengan pdf yang sudah didesain rapih professional
+- bisa memberi review ke pelatih setelah pembagian rapot
+- bisa mendapat reminder di dalam web app nya terkait upcoming latihan atau perlombaan
+- ada card-card berupa dashboard yang informatif (perlu saran baiknya apa)
+- jika coach sudah memberi rapot akan tampil di web appnya pengingat untuk melihat hasil rapot
+- perlu saran apakah ada yang perlu ditambahkan agar mantap
+
+4. Coach Page
+- coach page ini adalah pov coach, dimana mereka login dengan akun mereka dan melihat informasi yang memang diperlukan untuk mereka
+- coach bisa absensi member dengan scan qr code mereka
+- coach bisa absen dengan selfie dan nanti ada terdeteksi lokasi asli mereka (harus ada proteksi fake gps)
+- coach bisa melihat anak binaan mereka, beserta semua detail datanya
+- coach ada shortcut button untuk direct ke WhatsApp member
+- coach bisa melihat profilenya serta qr codenya
+- ada data absensi yang pernah dilakukan
+- bisa lihat kelas yang dia ajar
+- bisa memberi rapot ke siswa setiap 6 bulan sekali
+- bisa CRUD detail rapot siswa
+- perlu saran apakah ada yang perlu ditambahkan agar mantap

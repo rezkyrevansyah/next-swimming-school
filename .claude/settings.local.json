@@ -9,7 +9,14 @@
       "Bash(npx @next/codemod@canary middleware-to-proxy . --force)",
       "Bash(ls d:/projects/next-swimming-school/*.ts)",
       "Bash(npx supabase:*)",
-      "Bash(Out-File -FilePath lib/types/database.ts -Encoding utf8)"
+      "Bash(Out-File -FilePath lib/types/database.ts -Encoding utf8)",
+      "Bash(npm install:*)",
+      "Bash(node -e ':*)",
+      "Bash(node -e \"const pkg = require\\('./node_modules/@base-ui/react/package.json'\\); console.log\\(pkg.version\\)\")",
+      "Bash(node -e \"const pkg = require\\('./node_modules/@base-ui/react/package.json'\\); console.log\\(JSON.stringify\\(pkg.exports?.['./select'] || 'not found', null, 2\\)\\)\")",
+      "Bash(node -e \"const pkg = require\\('./package.json'\\); console.log\\(pkg.dependencies['@radix-ui/react-select'] || 'not installed'\\)\")",
+      "Bash(node -e \"const pkg = require\\('./node_modules/@radix-ui/react-select/package.json'\\); console.log\\(pkg.version\\)\")",
+      "Bash(grep -r \"SERVICE_ROLE\\\\|service_role\\\\|SUPABASE_SERVICE\" d:/projects/next-swimming-school/.env*)"
     ]
   }
 }

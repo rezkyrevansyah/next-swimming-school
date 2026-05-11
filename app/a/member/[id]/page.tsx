@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MemberProfileTab } from "./member-profile-tab";
 import { MemberDangerTab } from "./member-danger-tab";
+import { MemberQrCard } from "@/components/shared/member-qr-card";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Aktif",
@@ -51,6 +52,14 @@ export default async function MemberDetailPage({ params }: PageProps) {
     ? member.branches[0]
     : member.branches;
 
+  // Fetch email from auth.users via admin client
+  let email: string | null = null;
+  if (member.user_id) {
+    const adminClient = createAdminClient();
+    const { data: authUser } = await adminClient.auth.admin.getUserById(member.user_id);
+    email = authUser?.user?.email ?? null;
+  }
+
   return (
     <div className="p-6 max-w-3xl space-y-6">
       {/* Header */}
@@ -83,11 +92,26 @@ export default async function MemberDetailPage({ params }: PageProps) {
       <Tabs defaultValue="profil">
         <TabsList variant="line">
           <TabsTrigger value="profil">Profil</TabsTrigger>
+          <TabsTrigger value="qr">QR Code</TabsTrigger>
           <TabsTrigger value="bahaya">Zona Berbahaya</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profil" className="mt-4">
-          <MemberProfileTab member={member} profile={profile} branch={branch} />
+          <MemberProfileTab member={member} profile={profile} branch={branch} email={email} />
+        </TabsContent>
+
+        <TabsContent value="qr" className="mt-4">
+          <div className="max-w-xs mx-auto py-4">
+            <p className="text-sm text-muted-foreground text-center mb-4">
+              QR code ini bersifat permanen. Gunakan tombol di bawah untuk mengunduh atau mencetak.
+            </p>
+            <MemberQrCard
+              memberId={member.id}
+              memberCode={member.member_id_code}
+              fullName={profile?.full_name ?? ""}
+              compact
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="bahaya" className="mt-4">
