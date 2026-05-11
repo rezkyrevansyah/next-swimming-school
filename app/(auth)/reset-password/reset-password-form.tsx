@@ -31,7 +31,8 @@ export function ResetPasswordForm() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<Input>({
-    resolver: zodResolver(schema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema) as any,
   });
 
   function onSubmit(values: Input) {

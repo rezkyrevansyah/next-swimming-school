@@ -46,8 +46,8 @@ export async function createClass(
       capacity,
       monthly_price,
       sessions_per_month,
-      age_range_min: age_range_min !== "" && age_range_min !== undefined ? Number(age_range_min) : null,
-      age_range_max: age_range_max !== "" && age_range_max !== undefined ? Number(age_range_max) : null,
+      age_range_min: age_range_min ?? null,
+      age_range_max: age_range_max ?? null,
       location_name: location_name || null,
       status,
     })
@@ -80,12 +80,8 @@ export async function updateClass(
   const updateData: Record<string, unknown> = { ...rest };
   if (description !== undefined) updateData.description = description || null;
   if (location_name !== undefined) updateData.location_name = location_name || null;
-  if (age_range_min !== undefined)
-    updateData.age_range_min =
-      age_range_min !== "" ? Number(age_range_min) : null;
-  if (age_range_max !== undefined)
-    updateData.age_range_max =
-      age_range_max !== "" ? Number(age_range_max) : null;
+  if (age_range_min !== undefined) updateData.age_range_min = age_range_min ?? null;
+  if (age_range_max !== undefined) updateData.age_range_max = age_range_max ?? null;
 
   const { data: updated, error } = await supabase
     .from("classes")

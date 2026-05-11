@@ -80,7 +80,7 @@ export default async function CoachRapotPage() {
   }
 
   // Get existing report cards for active semester
-  let reportMap: Map<string, { id: string; status: string }> = new Map();
+  const reportMap: Map<string, { id: string; status: string }> = new Map();
   if (activeSemester) {
     const memberIds = memberClassPairs.map((p) => p.member_id);
     if (memberIds.length > 0) {
@@ -97,14 +97,14 @@ export default async function CoachRapotPage() {
   }
 
   // Build display list
-  const entries: ClassMemberEntry[] = memberClassPairs.map((p) => {
+  const entries = (memberClassPairs.map((p) => {
     const report = reportMap.get(`${p.member_id}:${p.class_id}`);
     return {
       ...p,
       report_status: report ? (report.status as "draft" | "published") : "not_started",
       report_id: report?.id ?? null,
     };
-  }).sort((a, b) => a.member_name.localeCompare(b.member_name));
+  }) as ClassMemberEntry[]).sort((a, b) => a.member_name.localeCompare(b.member_name));
 
   const isPastDeadline = activeSemester
     ? new Date(activeSemester.input_deadline) < new Date()

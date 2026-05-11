@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useCallback } from "react";
 import { toast } from "sonner";
-import { QrScanner } from "@yudiel/react-qr-scanner";
+import { Scanner as QrScanner, type IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { recordAttendanceByQr, recordAttendanceManual } from "@/lib/actions/class";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +71,9 @@ export function AttendanceTabs({
   ).length;
 
   // ── QR Scan handler ──────────────────────────────────────────────────────────
-  const handleScan = useCallback((result: string) => {
+  const handleScan = useCallback((results: IDetectedBarcode[]) => {
+    const result = results[0]?.rawValue;
+    if (!result) return;
     if (isPending || result === lastScanned) return;
     setLastScanned(result);
     // Reset lastScanned after 3s to allow re-scan
@@ -133,10 +135,9 @@ export function AttendanceTabs({
           <div className="space-y-3">
             <div className="rounded-xl overflow-hidden border">
               <QrScanner
-                onDecode={handleScan}
-                onError={() => {}}
+                onScan={handleScan}
                 constraints={{ facingMode: "environment" }}
-                containerStyle={{ width: "100%", paddingTop: "100%" }}
+                styles={{ container: { width: "100%", paddingTop: "100%" } }}
               />
             </div>
             <button

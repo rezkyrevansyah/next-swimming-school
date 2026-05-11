@@ -340,14 +340,15 @@ export async function approveMember(
     userId = authData.user.id;
 
     // Assign member role (use adminClient to bypass RLS on user_roles)
-    const { data: memberRole } = await adminClient
+    const ac = createAdminClient();
+    const { data: memberRole } = await ac
       .from("roles")
       .select("id")
       .eq("name", "member")
       .single();
 
     if (memberRole) {
-      await adminClient.from("user_roles").insert({
+      await ac.from("user_roles").insert({
         user_id: userId,
         role_id: memberRole.id,
         branch_id: options.branchId,

@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+const ageRangeField = z.preprocess(
+  (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
+  z.number().int().min(0).optional()
+);
+
 export const createClassSchema = z.object({
   name: z
     .string()
@@ -22,14 +27,25 @@ export const createClassSchema = z.object({
     .int()
     .min(1, "Minimal 1 sesi per bulan")
     .default(8),
-  age_range_min: z.coerce.number().int().min(0).optional().or(z.literal("")),
-  age_range_max: z.coerce.number().int().min(0).optional().or(z.literal("")),
+  age_range_min: ageRangeField,
+  age_range_max: ageRangeField,
   location_name: z.string().max(200).optional().or(z.literal("")),
   status: z.enum(["active", "inactive"]).default("active"),
 });
 
-export const updateClassSchema = createClassSchema.partial().extend({
+export const updateClassSchema = z.object({
   id: z.string().uuid(),
+  name: z.string().min(2).max(100).optional(),
+  slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/).optional(),
+  description: z.string().max(500).optional().or(z.literal("")),
+  branch_id: z.string().uuid().optional(),
+  capacity: z.coerce.number().int().min(1).optional(),
+  monthly_price: z.coerce.number().min(0).optional(),
+  sessions_per_month: z.coerce.number().int().min(1).optional(),
+  age_range_min: ageRangeField,
+  age_range_max: ageRangeField,
+  location_name: z.string().max(200).optional().or(z.literal("")),
+  status: z.enum(["active", "inactive"]).optional(),
 });
 
 export const scheduleItemSchema = z.object({

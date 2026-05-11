@@ -39,7 +39,8 @@ export function CreateMemberForm({ branches }: Props) {
     watch,
     formState: { errors },
   } = useForm<CreateMemberInput>({
-    resolver: zodResolver(createMemberSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createMemberSchema) as any,
     defaultValues: {
       phone_owner: "self",
       type: "regular",

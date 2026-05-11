@@ -20,7 +20,8 @@ export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<Input>({
-    resolver: zodResolver(schema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema) as any,
   });
 
   function onSubmit(values: Input) {

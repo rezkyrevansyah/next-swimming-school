@@ -8,9 +8,7 @@ export const createMemberSchema = z.object({
     .max(100, "Nama lengkap maksimal 100 karakter"),
   nickname: z.string().max(50, "Nama panggilan maksimal 50 karakter").optional(),
   dob: z.string().min(1, "Tanggal lahir wajib diisi"),
-  gender: z.enum(["male", "female"], {
-    errorMap: () => ({ message: "Pilih jenis kelamin" }),
-  }),
+  gender: z.enum(["male", "female"], { error: "Pilih jenis kelamin" }),
   phone: z
     .string()
     .max(20, "Nomor telepon maksimal 20 karakter")
@@ -40,9 +38,7 @@ export const createMemberSchema = z.object({
 
   // Member record
   branch_id: z.string().uuid("Cabang tidak valid"),
-  type: z.enum(["regular", "affiliate"], {
-    errorMap: () => ({ message: "Pilih jenis anggota" }),
-  }),
+  type: z.enum(["regular", "affiliate"], { error: "Pilih jenis anggota" }),
   payment_handling: z.enum(["individual", "covered_by_school"]).default("individual"),
   school_id: z.string().uuid().optional().or(z.literal("")),
 

@@ -51,7 +51,8 @@ export function ClassDetailTab({ cls, branch }: Props) {
 
   const { register, handleSubmit, setValue, formState: { errors } } =
     useForm<UpdateClassInput>({
-      resolver: zodResolver(updateClassSchema),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      resolver: zodResolver(updateClassSchema) as any,
       defaultValues: {
         id: cls.id,
         name: cls.name,

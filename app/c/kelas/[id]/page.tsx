@@ -43,6 +43,10 @@ export default async function CoachKelasDetailPage({ params }: PageProps) {
 
   if (!access) notFound();
 
+  const d = new Date();
+  d.setDate(d.getDate() - 7);
+  const sevenDaysAgo = d.toISOString().slice(0, 10);
+
   // Fetch class details + members + attendance summary
   const [{ data: cls }, { data: members }, { data: recentAttendance }] =
     await Promise.all([
@@ -69,7 +73,7 @@ export default async function CoachKelasDetailPage({ params }: PageProps) {
         .from("attendance_records")
         .select("member_id, session_date, status")
         .eq("class_id", id)
-        .gte("session_date", new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10))
+        .gte("session_date", sevenDaysAgo)
         .order("session_date", { ascending: false }),
     ]);
 
@@ -84,7 +88,6 @@ export default async function CoachKelasDetailPage({ params }: PageProps) {
     attendanceMap[r.member_id].push(r.status);
   });
 
-  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="p-4 space-y-4 max-w-lg mx-auto pb-24">

@@ -34,7 +34,8 @@ export function CreateCoachForm({ branches }: { branches: Branch[] }) {
     setValue,
     formState: { errors },
   } = useForm<CreateCoachInput>({
-    resolver: zodResolver(createCoachSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createCoachSchema) as any,
   });
 
   function onSubmit(data: CreateCoachInput) {

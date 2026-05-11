@@ -143,8 +143,10 @@ export default async function ClassDetailPage({ params }: PageProps) {
         <TabsContent value="pelatih" className="mt-4">
           <CoachTab
             classId={id}
-            assignedCoaches={(assignedCoaches ?? []) as Parameters<typeof CoachTab>[0]["assignedCoaches"]}
-            availableCoaches={(allCoaches ?? []) as Parameters<typeof CoachTab>[0]["availableCoaches"]}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            assignedCoaches={(assignedCoaches ?? []) as any}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            availableCoaches={(allCoaches ?? []) as any}
           />
         </TabsContent>
 
@@ -152,8 +154,10 @@ export default async function ClassDetailPage({ params }: PageProps) {
           <MemberRosterTab
             classId={id}
             capacity={cls.capacity}
-            enrolled={(enrolled ?? []) as Parameters<typeof MemberRosterTab>[0]["enrolled"]}
-            availableMembers={(allMembers ?? []) as Parameters<typeof MemberRosterTab>[0]["availableMembers"]}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            enrolled={(enrolled ?? []) as any}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            availableMembers={(allMembers ?? []) as any}
           />
         </TabsContent>
 

@@ -16,7 +16,10 @@
       "Bash(node -e \"const pkg = require\\('./node_modules/@base-ui/react/package.json'\\); console.log\\(JSON.stringify\\(pkg.exports?.['./select'] || 'not found', null, 2\\)\\)\")",
       "Bash(node -e \"const pkg = require\\('./package.json'\\); console.log\\(pkg.dependencies['@radix-ui/react-select'] || 'not installed'\\)\")",
       "Bash(node -e \"const pkg = require\\('./node_modules/@radix-ui/react-select/package.json'\\); console.log\\(pkg.version\\)\")",
-      "Bash(grep -r \"SERVICE_ROLE\\\\|service_role\\\\|SUPABASE_SERVICE\" d:/projects/next-swimming-school/.env*)"
+      "Bash(grep -r \"SERVICE_ROLE\\\\|service_role\\\\|SUPABASE_SERVICE\" d:/projects/next-swimming-school/.env*)",
+      "Bash(node -e \"const m = require\\('@yudiel/react-qr-scanner'\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node -e \"const {Scanner} = require\\('@yudiel/react-qr-scanner'\\); console.log\\(Scanner.toString\\(\\).slice\\(0, 500\\)\\)\")",
+      "Bash(grep -n \"errorMap\" d:/projects/next-swimming-school/lib/schemas/*.ts)"
     ]
   }
 }

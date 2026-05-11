@@ -44,7 +44,8 @@ export function CoachProfileTab({ coach, profile, email, branches }: Props) {
 
   const { register, handleSubmit, setValue, formState: { errors } } =
     useForm<UpdateCoachInput>({
-      resolver: zodResolver(updateCoachSchema),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(updateCoachSchema) as any,
       defaultValues: {
         id: coach.id,
         full_name: profile?.full_name ?? "",

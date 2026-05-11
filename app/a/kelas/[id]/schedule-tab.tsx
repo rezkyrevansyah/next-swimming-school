@@ -123,7 +123,7 @@ export function ScheduleTab({ classId, initialSchedules }: Props) {
       <CardContent className="space-y-3">
         {schedules.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-6">
-            Belum ada jadwal. Klik "Tambah Hari" untuk menambahkan.
+            Belum ada jadwal. Klik &quot;Tambah Hari&quot; untuk menambahkan.
           </p>
         )}
 

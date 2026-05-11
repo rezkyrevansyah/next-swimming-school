@@ -37,6 +37,24 @@ export function ClockInClient({
   const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [distanceM, setDistanceM] = useState<number | null>(null);
 
+  const requestGps = useCallback(() => {
+    setGpsState("loading");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        });
+        setGpsState("ok");
+      },
+      () => {
+        setGpsState("error");
+      },
+      { enableHighAccuracy: true, timeout: 10_000 }
+    );
+  }, []);
+
   // Already clocked in — show result
   if (existingRecord) {
     const time = new Date(existingRecord.clockInAt).toLocaleTimeString("id-ID", {
@@ -77,24 +95,6 @@ export function ClockInClient({
       </div>
     );
   }
-
-  const requestGps = useCallback(() => {
-    setGpsState("loading");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        });
-        setGpsState("ok");
-      },
-      () => {
-        setGpsState("error");
-      },
-      { enableHighAccuracy: true, timeout: 10_000 }
-    );
-  }, []);
 
   // Preview distance when GPS ok and branch coords known
   const previewDistance =

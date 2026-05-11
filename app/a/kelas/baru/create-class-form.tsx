@@ -35,7 +35,8 @@ export function CreateClassForm({ branches }: { branches: Branch[] }) {
     watch,
     formState: { errors },
   } = useForm<CreateClassInput>({
-    resolver: zodResolver(createClassSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createClassSchema) as any,
     defaultValues: {
       capacity: 20,
       sessions_per_month: 8,

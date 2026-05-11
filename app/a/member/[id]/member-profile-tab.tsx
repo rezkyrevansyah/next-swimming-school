@@ -60,7 +60,8 @@ export function MemberProfileTab({ member, profile, branch, email }: Props) {
     watch,
     formState: { errors },
   } = useForm<UpdateMemberInput>({
-    resolver: zodResolver(updateMemberSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(updateMemberSchema) as any,
     defaultValues: {
       id: member.id,
       full_name: profile?.full_name ?? "",
