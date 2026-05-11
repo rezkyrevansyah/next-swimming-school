@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useState, useTransition } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 
 import { loginSchema, type LoginInput } from "@/lib/schemas/auth";
 import { signIn } from "@/lib/actions/auth";
@@ -79,7 +80,15 @@ export function LoginForm() {
 
       {/* Password */}
       <div className="space-y-1.5">
-        <Label htmlFor="password">Password</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Password</Label>
+          <Link
+            href="/lupa-password"
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+          >
+            Lupa password?
+          </Link>
+        </div>
         <div className="relative">
           <Input
             id="password"

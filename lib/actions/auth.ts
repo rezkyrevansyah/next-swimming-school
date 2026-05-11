@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { loginSchema } from "@/lib/schemas/auth";
 import { getCurrentUserRole, getRoleRedirectPath } from "@/lib/utils/auth-helpers";
@@ -46,6 +46,38 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
   const role = await getCurrentUserRole();
   const destination = getRoleRedirectPath(role);
   redirect(destination);
+}
+
+/**
+ * Sends a password reset email to the user.
+ */
+export async function requestPasswordReset(email: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const reqHeaders = await headers();
+  const origin = reqHeaders.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/reset-password`,
+  });
+
+  // Always return success to avoid email enumeration
+  if (error && !error.message.toLowerCase().includes("rate limit")) {
+    return { error: "Gagal mengirim email. Coba lagi." };
+  }
+
+  return { data: undefined };
+}
+
+/**
+ * Updates the current user's password (called after clicking reset link in email).
+ */
+export async function updatePassword(newPassword: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { error: "Gagal mengubah password: " + error.message };
+
+  return { data: undefined };
 }
 
 /**

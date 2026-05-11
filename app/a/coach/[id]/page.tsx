@@ -106,7 +106,9 @@ export default async function CoachDetailPage({ params }: PageProps) {
         <TabsContent value="bahaya" className="mt-4">
           <CoachDangerTab
             coachId={coach.id}
+            userId={coach.user_id ?? null}
             isDeleted={!!coach.deleted_at}
+            passwordChangedAt={coach.password_changed_at ?? null}
           />
         </TabsContent>
       </Tabs>

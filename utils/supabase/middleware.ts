@@ -41,6 +41,12 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Auth routes that must always be accessible (even when logged in)
+  const AUTH_BYPASS = ["/auth/callback", "/auth/reset-password", "/lupa-password", "/reset-password"];
+  if (AUTH_BYPASS.some((p) => pathname.startsWith(p))) {
+    return supabaseResponse;
+  }
+
   // Unauthenticated user accessing a protected route → /login
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix)

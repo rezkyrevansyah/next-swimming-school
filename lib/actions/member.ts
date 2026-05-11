@@ -114,16 +114,16 @@ export async function createMember(
     return { error: `Gagal menyimpan profil: ${profileError.message}` };
   }
 
-  // 5. If account created, assign member role
+  // 5. If account created, assign member role (use adminClient to bypass RLS on user_roles)
   if (userId) {
-    const { data: memberRole } = await supabase
+    const { data: memberRole } = await adminClient
       .from("roles")
       .select("id")
       .eq("name", "member")
       .single();
 
     if (memberRole) {
-      await supabase.from("user_roles").insert({
+      await adminClient.from("user_roles").insert({
         user_id: userId,
         role_id: memberRole.id,
         branch_id,
@@ -274,20 +274,27 @@ export async function restoreMember(id: string): Promise<ActionResult> {
 }
 
 export async function resetMemberPassword(
-  userId: string
-): Promise<ActionResult<{ tempPassword: string }>> {
-  const supabase = createClient(await cookies());
-
-  const tempPassword =
-    Math.random().toString(36).slice(-8).toUpperCase() + "1!";
+  memberId: string,
+  userId: string,
+  newPassword: string
+): Promise<ActionResult> {
+  if (!newPassword || newPassword.length < 8) {
+    return { error: "Password minimal 8 karakter." };
+  }
 
   const { error } = await createAdminClient().auth.admin.updateUserById(userId, {
-    password: tempPassword,
+    password: newPassword,
   });
-
   if (error) return { error: `Gagal mereset kata sandi: ${error.message}` };
 
-  return { data: { tempPassword } };
+  // Record when password was changed
+  const supabase = createClient(await cookies());
+  await supabase
+    .from("members")
+    .update({ password_changed_at: new Date().toISOString() })
+    .eq("id", memberId);
+
+  return { data: undefined };
 }
 
 /**
@@ -332,15 +339,15 @@ export async function approveMember(
     }
     userId = authData.user.id;
 
-    // Assign member role
-    const { data: memberRole } = await supabase
+    // Assign member role (use adminClient to bypass RLS on user_roles)
+    const { data: memberRole } = await adminClient
       .from("roles")
       .select("id")
       .eq("name", "member")
       .single();
 
     if (memberRole) {
-      await supabase.from("user_roles").insert({
+      await adminClient.from("user_roles").insert({
         user_id: userId,
         role_id: memberRole.id,
         branch_id: options.branchId,

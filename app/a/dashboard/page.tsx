@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Users, UserCheck, BookOpen, TrendingUp } from "lucide-react";
@@ -9,28 +9,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-async function getDashboardStats(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function getDashboardStats() {
+  const db = createAdminClient();
   const [
     { count: totalMembers },
     { count: activeMembers },
     { count: totalCoaches },
     { count: totalClasses },
   ] = await Promise.all([
-    supabase
+    db
       .from("members")
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null),
-    supabase
+    db
       .from("members")
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null)
       .eq("status", "active"),
-    supabase
+    db
       .from("coaches")
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null)
       .eq("status", "active"),
-    supabase
+    db
       .from("classes")
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null)
@@ -80,7 +81,7 @@ export default async function AdminDashboardPage() {
 
   if (!user) redirect("/login");
 
-  const stats = await getDashboardStats(supabase);
+  const stats = await getDashboardStats();
 
   return (
     <div className="p-6 space-y-6">

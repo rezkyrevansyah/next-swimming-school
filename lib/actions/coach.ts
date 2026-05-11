@@ -101,15 +101,15 @@ export async function createCoach(
     return { error: `Gagal menyimpan profil: ${profileError.message}` };
   }
 
-  // 5. Assign coach role
-  const { data: coachRole } = await supabase
+  // 5. Assign coach role (use adminClient to bypass RLS on user_roles)
+  const { data: coachRole } = await adminClient
     .from("roles")
     .select("id")
     .eq("name", "coach")
     .single();
 
   if (coachRole) {
-    await supabase.from("user_roles").insert({
+    await adminClient.from("user_roles").insert({
       user_id: userId,
       role_id: coachRole.id,
       branch_id,
@@ -239,6 +239,30 @@ export async function restoreCoach(id: string): Promise<ActionResult> {
   if (error) return { error: `Gagal memulihkan pelatih: ${error.message}` };
 
   revalidatePath("/a/coach");
+  return { data: undefined };
+}
+
+export async function resetCoachPassword(
+  coachId: string,
+  userId: string,
+  newPassword: string
+): Promise<ActionResult> {
+  if (!newPassword || newPassword.length < 8) {
+    return { error: "Password minimal 8 karakter." };
+  }
+
+  const { error } = await createAdminClient().auth.admin.updateUserById(userId, {
+    password: newPassword,
+  });
+  if (error) return { error: `Gagal mereset kata sandi: ${error.message}` };
+
+  // Record when password was changed
+  const supabase = createClient(await cookies());
+  await supabase
+    .from("coaches")
+    .update({ password_changed_at: new Date().toISOString() })
+    .eq("id", coachId);
+
   return { data: undefined };
 }
 

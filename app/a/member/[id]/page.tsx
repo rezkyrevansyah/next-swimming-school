@@ -120,6 +120,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
             userId={member.user_id}
             isDeleted={!!member.deleted_at}
             hasAccount={member.has_account}
+            passwordChangedAt={member.password_changed_at ?? null}
           />
         </TabsContent>
       </Tabs>
