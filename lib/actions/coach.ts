@@ -102,18 +102,24 @@ export async function createCoach(
   }
 
   // 5. Assign coach role (use adminClient to bypass RLS on user_roles)
-  const { data: coachRole } = await adminClient
+  const { data: coachRole, error: roleErr } = await adminClient
     .from("roles")
     .select("id")
     .eq("name", "coach")
     .single();
 
-  if (coachRole) {
-    await adminClient.from("user_roles").insert({
-      user_id: userId,
-      role_id: coachRole.id,
-      branch_id,
-    });
+  if (roleErr || !coachRole) {
+    return { error: `Role 'coach' tidak ditemukan di database: ${roleErr?.message ?? "null"}` };
+  }
+
+  const { error: userRoleErr } = await adminClient.from("user_roles").insert({
+    user_id: userId,
+    role_id: coachRole.id,
+    branch_id,
+  });
+
+  if (userRoleErr) {
+    return { error: `Gagal assign role: ${userRoleErr.message}` };
   }
 
   // 6. Assign to branch

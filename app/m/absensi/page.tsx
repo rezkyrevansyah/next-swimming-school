@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { AbsensiFilter } from "./absensi-filter";
 
 interface PageProps {
   searchParams: Promise<{ bulan?: string; kelas?: string }>;
@@ -84,33 +85,12 @@ export default async function MemberAbsensiPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2">
-        <form method="GET" action="/m/absensi" className="flex gap-2 flex-1">
-          <select
-            name="bulan"
-            defaultValue={bulan}
-            className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm"
-            onChange={(e) => (e.target.form as HTMLFormElement).submit()}
-          >
-            {monthOptions.map((m) => (
-              <option key={m.val} value={m.val}>{m.label}</option>
-            ))}
-          </select>
-          {classes.length > 1 && (
-            <select
-              name="kelas"
-              defaultValue={kelasFilter}
-              className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm"
-              onChange={(e) => (e.target.form as HTMLFormElement).submit()}
-            >
-              <option value="">Semua Kelas</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          )}
-        </form>
-      </div>
+      <AbsensiFilter
+        bulan={bulan}
+        kelasFilter={kelasFilter}
+        monthOptions={monthOptions}
+        classes={classes}
+      />
 
       {/* Stats */}
       {total > 0 && (

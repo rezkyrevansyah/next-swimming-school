@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { loginSchema } from "@/lib/schemas/auth";
-import { getCurrentUserRole, getRoleRedirectPath } from "@/lib/utils/auth-helpers";
+import { getRoleRedirectPath } from "@/lib/utils/auth-helpers";
 import type { ActionResult } from "@/lib/types/common";
 
 /**
@@ -42,8 +42,9 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
     return { error: "Gagal masuk. Coba lagi." };
   }
 
-  // M2.6: fetch role and redirect to the correct dashboard
-  const role = await getCurrentUserRole();
+  // Use the same supabase instance (already has the new session) to fetch role
+  const { data: roleData } = await supabase.rpc("user_role");
+  const role = roleData as string | null;
   const destination = getRoleRedirectPath(role);
   redirect(destination);
 }

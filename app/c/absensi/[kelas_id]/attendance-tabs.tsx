@@ -133,11 +133,10 @@ export function AttendanceTabs({
           </button>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-xl overflow-hidden border">
+            <div className="rounded-xl overflow-hidden border w-full">
               <QrScanner
                 onScan={handleScan}
                 constraints={{ facingMode: "environment" }}
-                styles={{ container: { width: "100%", paddingTop: "100%" } }}
               />
             </div>
             <button
