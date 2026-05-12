@@ -252,7 +252,8 @@ const LATE_THRESHOLD_MINUTES = 15;
 export async function recordAttendanceByQr(
   scannedMemberId: string,
   classId: string,
-  sessionDate: string // YYYY-MM-DD
+  sessionDate: string, // YYYY-MM-DD
+  notes?: string
 ): Promise<ActionResult<{ memberName: string; status: string }>> {
   const supabase = createClient(await cookies());
 
@@ -325,6 +326,7 @@ export async function recordAttendanceByQr(
       recorded_by_coach_id: coach?.id ?? null,
       scanned_at: new Date().toISOString(),
       scan_method: "qr",
+      notes: notes ?? null,
     });
 
   if (error) {
@@ -343,7 +345,8 @@ export async function recordAttendanceManual(
   memberId: string,
   classId: string,
   sessionDate: string,
-  status: "present" | "late" | "permitted" | "sick" | "absent"
+  status: "present" | "late" | "permitted" | "sick" | "absent",
+  notes?: string
 ): Promise<ActionResult> {
   const supabase = createClient(await cookies());
 
@@ -373,6 +376,7 @@ export async function recordAttendanceManual(
       status,
       recorded_by_coach_id: coach?.id ?? null,
       scan_method: "manual",
+      notes: notes ?? null,
     }, { onConflict: "member_id,class_id,session_date" });
 
   if (error) return { error: `Gagal menyimpan absensi: ${error.message}` };

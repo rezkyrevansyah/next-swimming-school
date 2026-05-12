@@ -45,6 +45,9 @@ export default async function AbsensiActivePage({ params }: PageProps) {
     (s: { day_of_week: number }) => s.day_of_week === todayDow
   ) as { start_time: string; end_time: string } | undefined;
 
+  const scheduledDays = (cls.class_schedules ?? []).map((s: { day_of_week: number }) => s.day_of_week);
+  const isOffSchedule = !todaySchedule;
+
   const branch = Array.isArray(cls.branches) ? cls.branches[0] : cls.branches;
 
   // Get enrolled members
@@ -108,6 +111,8 @@ export default async function AbsensiActivePage({ params }: PageProps) {
         classStartTime={todaySchedule?.start_time ?? null}
         members={members}
         initialRecords={(existingRecords ?? []) as { member_id: string; status: string }[]}
+        isOffSchedule={isOffSchedule}
+        scheduledDays={scheduledDays}
       />
     </div>
   );
