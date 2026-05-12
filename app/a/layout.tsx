@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { AdminSidebar } from "@/components/shared/admin-sidebar";
 import { BranchContextBanner } from "@/components/shared/branch-context-banner";
+import { unstable_noStore as noStore } from "next/cache";
 
 export default async function AdminLayout({
   children,
@@ -34,13 +35,38 @@ export default async function AdminLayout({
     sidebarBranchName = activeBranchName;
   }
 
+  // Fetch pending counts for sidebar badges
+  noStore();
+  const db = createAdminClient();
+  const activeBranchIdForCounts = jar.get("active_branch_id")?.value ?? null;
+  let branchIdForCounts: string | null = activeBranchIdForCounts;
+  if (!branchIdForCounts) {
+    const { data } = await supabase.rpc("user_branch_id");
+    branchIdForCounts = data ?? null;
+  }
+
+  const [{ count: pendingRegistrasi }, { count: pendingApproval }] = await Promise.all([
+    branchIdForCounts
+      ? db.from("members").select("*", { count: "exact", head: true })
+          .eq("branch_id", branchIdForCounts).is("deleted_at", null).eq("status", "pending_payment")
+      : Promise.resolve({ count: 0 }),
+    db.from("change_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
+  ]);
+
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-screen flex-col overflow-hidden">
       {isOwnerInAdminMode && (
         <BranchContextBanner branchName={activeBranchName ?? "Cabang"} />
       )}
-      <div className="flex flex-1 min-h-0">
-        <AdminSidebar role={role} branchName={sidebarBranchName} />
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <AdminSidebar
+          role={role}
+          branchName={sidebarBranchName}
+          pendingCounts={{
+            registrasi: pendingRegistrasi ?? 0,
+            approval: pendingApproval ?? 0,
+          }}
+        />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>

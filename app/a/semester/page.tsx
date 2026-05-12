@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { SemesterActions } from "./semester-actions";
 import { CreateSemesterForm } from "./create-semester-form";
+import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -16,24 +17,47 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
   closed: "secondary",
 };
 
-export default async function SemesterPage() {
+interface PageProps {
+  searchParams: Promise<{ page?: string; limit?: string }>;
+}
+
+export default async function SemesterPage({ searchParams }: PageProps) {
   const supabase = createClient(await cookies());
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: semesters }, { data: branches }] = await Promise.all([
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  function buildUrl(overrides: Record<string, string | undefined>) {
+    const p = new URLSearchParams();
+    if (page > 1) p.set("page", String(page));
+    if (pageSize !== DEFAULT_PAGE_SIZE) p.set("limit", String(pageSize));
+    Object.entries(overrides).forEach(([k, v]) => {
+      if (v === undefined) p.delete(k);
+      else p.set(k, v);
+    });
+    const s = p.toString();
+    return `/a/semester${s ? `?${s}` : ""}`;
+  }
+
+  const [{ data: semesters, count }, { data: branches }] = await Promise.all([
     supabase
       .from("semesters")
-      .select("id, name, start_date, end_date, input_deadline, status, branch_id, branches(name)")
-      .order("start_date", { ascending: false }),
+      .select("id, name, start_date, end_date, input_deadline, status, branch_id, branches(name)", { count: "exact" })
+      .order("start_date", { ascending: false })
+      .range(from, to),
     supabase
       .from("branches")
       .select("id, name")
       .eq("status", "active")
       .is("deleted_at", null),
   ]);
+
+  const totalPages = Math.ceil((count ?? 0) / pageSize);
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -51,7 +75,7 @@ export default async function SemesterPage() {
       </div>
 
       {/* Semester list */}
-      <div className="space-y-3">
+      <div className="space-y-3 pb-2">
         {(!semesters || semesters.length === 0) ? (
           <div className="rounded-lg border border-dashed px-6 py-12 text-center text-muted-foreground text-sm">
             Belum ada semester. Buat semester pertama di atas.
@@ -83,6 +107,13 @@ export default async function SemesterPage() {
           })
         )}
       </div>
+
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        buildUrl={buildUrl}
+      />
     </div>
   );
 }

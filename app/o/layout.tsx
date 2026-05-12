@@ -9,7 +9,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
   if (roleData !== "owner") redirect("/a/dashboard");
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       <OwnerSidebar />
       <main className="flex-1 overflow-y-auto">{children}</main>
     </div>

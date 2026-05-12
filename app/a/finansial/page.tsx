@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
 
 // ============================================================================
 // Helpers
@@ -51,6 +51,7 @@ interface PageProps {
     page?: string;
     status?: string;
     period?: string;
+    limit?: string;
   }>;
 }
 
@@ -73,9 +74,10 @@ export default async function FinansialPage({ searchParams }: PageProps) {
 
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
   const statusFilter = params.status ?? "";
   const periodFilter = params.period ?? "";
-  const offset = (page - 1) * DEFAULT_PAGE_SIZE;
+  const offset = (page - 1) * pageSize;
 
   // ── Stats (current month) ──────────────────────────────────────────────
   const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -149,13 +151,27 @@ export default async function FinansialPage({ searchParams }: PageProps) {
     .eq("branch_id", branchId)
     .order("period_month", { ascending: false })
     .order("created_at", { ascending: false })
-    .range(offset, offset + DEFAULT_PAGE_SIZE - 1);
+    .range(offset, offset + pageSize - 1);
 
   if (statusFilter) query = query.eq("status", statusFilter);
   if (periodFilter) query = query.eq("period_month", periodFilter);
 
   const { data: invoices, count: totalCount } = await query;
-  const totalPages = Math.ceil((totalCount ?? 0) / DEFAULT_PAGE_SIZE);
+  const totalPages = Math.ceil((totalCount ?? 0) / pageSize);
+
+  function buildUrl(overrides: Record<string, string | undefined>) {
+    const p = new URLSearchParams();
+    if (statusFilter) p.set("status", statusFilter);
+    if (periodFilter) p.set("period", periodFilter);
+    if (page > 1) p.set("page", String(page));
+    if (pageSize !== DEFAULT_PAGE_SIZE) p.set("limit", String(pageSize));
+    Object.entries(overrides).forEach(([k, v]) => {
+      if (v === undefined) p.delete(k);
+      else p.set(k, v);
+    });
+    const s = p.toString();
+    return `/a/finansial${s ? `?${s}` : ""}`;
+  }
 
   // ── Available periods for filter ───────────────────────────────────────
   const { data: periods } = await supabase
@@ -362,33 +378,7 @@ export default async function FinansialPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            {offset + 1}–{Math.min(offset + DEFAULT_PAGE_SIZE, totalCount ?? 0)} dari{" "}
-            {totalCount} invoice
-          </span>
-          <div className="flex gap-2">
-            {page > 1 && (
-              <Link
-                href={`/a/finansial?page=${page - 1}${statusFilter ? `&status=${statusFilter}` : ""}${periodFilter ? `&period=${periodFilter}` : ""}`}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                Sebelumnya
-              </Link>
-            )}
-            {page < totalPages && (
-              <Link
-                href={`/a/finansial?page=${page + 1}${statusFilter ? `&status=${statusFilter}` : ""}${periodFilter ? `&period=${periodFilter}` : ""}`}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                Berikutnya
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
+      <PaginationControls page={page} totalPages={totalPages} pageSize={pageSize} buildUrl={buildUrl} />
     </div>
   );
 }

@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, Copy, Check } from "lucide-react";
+import { MessageCircle, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 interface Member {
   id: string;
@@ -50,6 +53,8 @@ export function ReminderClient({
   const [customMessage, setCustomMessage] = useState("");
   const [search, setSearch] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(1);
 
   const template = TEMPLATES.find((t) => t.id === selectedTemplateId) ?? TEMPLATES[0];
 
@@ -58,6 +63,9 @@ export function ReminderClient({
       m.full_name.toLowerCase().includes(search.toLowerCase()) ||
       m.member_id_code.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   function buildMessage(member: Member) {
     if (selectedTemplateId === "kustom") {
@@ -124,7 +132,7 @@ export function ReminderClient({
         <div className="flex items-center gap-3">
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Cari nama atau ID member..."
             className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
@@ -137,7 +145,7 @@ export function ReminderClient({
           </div>
         ) : (
           <div className="rounded-xl border overflow-hidden divide-y">
-            {filtered.map((member) => {
+            {paginated.map((member) => {
               const url = buildWaUrl(member);
               return (
                 <div key={member.id} className="flex items-center gap-3 px-4 py-3">
@@ -184,6 +192,57 @@ export function ReminderClient({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between text-sm gap-4 flex-wrap">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Tampilkan</span>
+              <div className="flex gap-1">
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => { setPageSize(size); setPage(1); }}
+                    className={cn(
+                      "inline-flex items-center justify-center h-7 min-w-7 px-2 rounded border text-xs font-medium transition-colors",
+                      pageSize === size
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-input hover:bg-accent hover:text-accent-foreground"
+                    )}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+              <span>baris</span>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Hal. {page} / {totalPages}</span>
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className={cn(
+                    "inline-flex items-center justify-center h-8 w-8 rounded border text-sm transition-colors",
+                    page <= 1 ? "opacity-50 pointer-events-none" : "hover:bg-accent"
+                  )}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className={cn(
+                    "inline-flex items-center justify-center h-8 w-8 rounded border text-sm transition-colors",
+                    page >= totalPages ? "opacity-50 pointer-events-none" : "hover:bg-accent"
+                  )}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

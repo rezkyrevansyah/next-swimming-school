@@ -69,7 +69,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
     .from("class_members")
     .select("status, classes(id, name, status)")
     .eq("member_id", id)
-    .order("created_at", { ascending: false });
+    .order("joined_at", { ascending: false });
 
   // Fetch active classes for enroll dropdown
   const { data: activeClasses } = await supabase

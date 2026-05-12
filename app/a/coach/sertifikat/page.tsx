@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CertApprovalActions } from "./cert-approval-actions";
+import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
 
 interface PageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string; limit?: string }>;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -25,6 +26,23 @@ export default async function CoachSertifikatPage({ searchParams }: PageProps) {
 
   const params = await searchParams;
   const statusFilter = params.status ?? "pending_approval";
+  const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  function buildUrl(overrides: Record<string, string | undefined>) {
+    const p = new URLSearchParams();
+    if (statusFilter !== "pending_approval") p.set("status", statusFilter);
+    if (page > 1) p.set("page", String(page));
+    if (pageSize !== DEFAULT_PAGE_SIZE) p.set("limit", String(pageSize));
+    Object.entries(overrides).forEach(([k, v]) => {
+      if (v === undefined) p.delete(k);
+      else p.set(k, v);
+    });
+    const s = p.toString();
+    return `/a/coach/sertifikat${s ? `?${s}` : ""}`;
+  }
 
   let query = supabase
     .from("coach_certificates")
@@ -32,14 +50,16 @@ export default async function CoachSertifikatPage({ searchParams }: PageProps) {
       id, name, photo_url, issued_year, valid_until, no_expiry,
       approval_status, approval_notes, approved_at, created_at,
       coaches(id, coach_id_code, coach_profiles(full_name))
-    `)
-    .order("created_at", { ascending: true });
+    `, { count: "exact" })
+    .order("created_at", { ascending: true })
+    .range(from, to);
 
   if (statusFilter !== "all") {
     query = query.eq("approval_status", statusFilter);
   }
 
-  const { data: certs } = await query;
+  const { data: certs, count } = await query;
+  const totalPages = Math.ceil((count ?? 0) / pageSize);
 
   const tabs = [
     { value: "pending_approval", label: "Menunggu" },
@@ -53,7 +73,7 @@ export default async function CoachSertifikatPage({ searchParams }: PageProps) {
       <div>
         <h1 className="text-xl md:text-2xl font-semibold">Sertifikat Pelatih</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {certs?.length ?? 0} sertifikat
+          {count ?? 0} sertifikat
         </p>
       </div>
 
@@ -62,7 +82,7 @@ export default async function CoachSertifikatPage({ searchParams }: PageProps) {
         {tabs.map((tab) => (
           <Link
             key={tab.value}
-            href={`/a/coach/sertifikat?status=${tab.value}`}
+            href={buildUrl({ status: tab.value === "pending_approval" ? undefined : tab.value, page: "1" })}
             className={cn(
               buttonVariants({ size: "sm", variant: statusFilter === tab.value ? "default" : "outline" })
             )}
@@ -138,6 +158,13 @@ export default async function CoachSertifikatPage({ searchParams }: PageProps) {
           })}
         </div>
       )}
+
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        buildUrl={buildUrl}
+      />
     </div>
   );
 }

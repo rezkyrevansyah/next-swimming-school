@@ -6,13 +6,14 @@ import { CheckCircle2, Clock, FileText, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
 
 interface PageProps {
   searchParams: Promise<{
     page?: string;
     semester_id?: string;
     status?: string;
+    limit?: string;
   }>;
 }
 
@@ -23,10 +24,11 @@ export default async function AdminRapotPage({ searchParams }: PageProps) {
 
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
   const semesterFilter = params.semester_id ?? "";
   const statusFilter = params.status ?? "";
-  const from = (page - 1) * DEFAULT_PAGE_SIZE;
-  const to = from + DEFAULT_PAGE_SIZE - 1;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   // Fetch semesters for filter
   const { data: semesters } = await supabase
@@ -53,13 +55,14 @@ export default async function AdminRapotPage({ searchParams }: PageProps) {
   if (statusFilter) query = query.eq("status", statusFilter);
 
   const { data: reports, count } = await query;
-  const totalPages = Math.ceil((count ?? 0) / DEFAULT_PAGE_SIZE);
+  const totalPages = Math.ceil((count ?? 0) / pageSize);
 
   function buildUrl(overrides: Record<string, string | undefined>) {
     const p = new URLSearchParams();
     if (semesterFilter) p.set("semester_id", semesterFilter);
     if (statusFilter) p.set("status", statusFilter);
     if (page > 1) p.set("page", String(page));
+    if (pageSize !== DEFAULT_PAGE_SIZE) p.set("limit", String(pageSize));
     Object.entries(overrides).forEach(([k, v]) => {
       if (v === undefined) p.delete(k);
       else p.set(k, v);
@@ -179,26 +182,7 @@ export default async function AdminRapotPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Hal. {page} / {totalPages}</span>
-          <div className="flex gap-2">
-            <Link
-              href={buildUrl({ page: String(page - 1) })}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), page <= 1 && "pointer-events-none opacity-50")}
-            >
-              Prev
-            </Link>
-            <Link
-              href={buildUrl({ page: String(page + 1) })}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), page >= totalPages && "pointer-events-none opacity-50")}
-            >
-              Next
-            </Link>
-          </div>
-        </div>
-      )}
+      <PaginationControls page={page} totalPages={totalPages} pageSize={pageSize} buildUrl={buildUrl} />
     </div>
   );
 }

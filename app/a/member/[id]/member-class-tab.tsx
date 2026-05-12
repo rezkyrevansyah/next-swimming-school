@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -30,22 +31,58 @@ interface Props {
 }
 
 export function MemberClassTab({ memberId, enrolled, availableClasses }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState("");
+  // Optimistic: track locally enrolled/unenrolled IDs so UI updates instantly
+  // before server re-render completes
+  const [localEnrolledIds, setLocalEnrolledIds] = useState<Set<string>>(new Set());
+  const [localUnenrolledIds, setLocalUnenrolledIds] = useState<Set<string>>(new Set());
 
-  const enrolledIds = new Set(
-    enrolled.filter((e) => e.status === "enrolled").map((e) => e.classes?.id)
+  // Reset local state when server data refreshes
+  useEffect(() => {
+    setLocalEnrolledIds(new Set());
+    setLocalUnenrolledIds(new Set());
+  }, [enrolled]);
+
+  const serverEnrolledIds = new Set(
+    enrolled.filter((e) => e.status === "enrolled").map((e) => e.classes?.id).filter(Boolean) as string[]
   );
-  const unenrolledClasses = availableClasses.filter((c) => !enrolledIds.has(c.id));
+  // Merge: server + local additions, minus local removals
+  const effectiveEnrolledIds = new Set([
+    ...serverEnrolledIds,
+    ...localEnrolledIds,
+  ]);
+  localUnenrolledIds.forEach((id) => effectiveEnrolledIds.delete(id));
+
+  const unenrolledClasses = availableClasses.filter((c) => !effectiveEnrolledIds.has(c.id));
+
+  // Active enrollments: server data minus local removals, plus local additions
+  const serverActive = enrolled.filter((e) => {
+    if (e.status !== "enrolled") return false;
+    const classId = e.classes?.id;
+    return classId && !localUnenrolledIds.has(classId);
+  });
+  const locallyAdded = [...localEnrolledIds]
+    .filter((id) => !serverEnrolledIds.has(id))
+    .map((id) => {
+      const cls = availableClasses.find((c) => c.id === id);
+      if (!cls) return null;
+      return { status: "enrolled", classes: { id: cls.id, name: cls.name, status: "active" } } as EnrolledEntry;
+    })
+    .filter(Boolean) as EnrolledEntry[];
+  const activeEnrollments = [...serverActive, ...locallyAdded];
 
   function handleEnroll() {
     if (!selectedClassId) return;
     setError(null);
     startTransition(async () => {
       const res = await enrollMember(selectedClassId, memberId);
-      if (res.error) setError(res.error);
-      else setSelectedClassId("");
+      if (res.error) { setError(res.error); return; }
+      setLocalEnrolledIds((prev) => new Set([...prev, selectedClassId]));
+      setSelectedClassId("");
+      router.refresh();
     });
   }
 
@@ -53,11 +90,11 @@ export function MemberClassTab({ memberId, enrolled, availableClasses }: Props) 
     setError(null);
     startTransition(async () => {
       const res = await unenrollMember(classId, memberId);
-      if (res.error) setError(res.error);
+      if (res.error) { setError(res.error); return; }
+      setLocalUnenrolledIds((prev) => new Set([...prev, classId]));
+      router.refresh();
     });
   }
-
-  const activeEnrollments = enrolled.filter((e) => e.status === "enrolled");
 
   return (
     <div className="space-y-6">
@@ -109,9 +146,13 @@ export function MemberClassTab({ memberId, enrolled, availableClasses }: Props) 
       </div>
 
       {/* Enroll to new class */}
-      {unenrolledClasses.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium mb-3">Daftarkan ke Kelas</h3>
+      <div>
+        <h3 className="text-sm font-medium mb-3">Daftarkan ke Kelas</h3>
+        {unenrolledClasses.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center border rounded-lg">
+            Semua kelas aktif sudah didaftarkan.
+          </p>
+        ) : (
           <div className="flex gap-2">
             <select
               value={selectedClassId}
@@ -128,8 +169,8 @@ export function MemberClassTab({ memberId, enrolled, availableClasses }: Props) 
               Daftarkan
             </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Withdrawn/history */}
       {enrolled.filter((e) => e.status !== "enrolled").length > 0 && (

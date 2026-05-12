@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Search, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Aktif",
@@ -29,7 +29,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 };
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; page?: string; deleted?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; deleted?: string; limit?: string }>;
 }
 
 export default async function MemberListPage({ searchParams }: PageProps) {
@@ -40,15 +40,17 @@ export default async function MemberListPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
   const showDeleted = params.deleted === "1";
-  const from = (page - 1) * DEFAULT_PAGE_SIZE;
-  const to = from + DEFAULT_PAGE_SIZE - 1;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   let query = supabase
     .from("members")
     .select(
       `id, member_id_code, status, type, has_account, joined_date, deleted_at,
-       member_profiles!inner(full_name, phone, dob)`,
+       member_profiles!inner(full_name, phone, dob),
+       class_members(status)`,
       { count: "exact" }
     )
     .order("created_at", { ascending: false })
@@ -73,13 +75,14 @@ export default async function MemberListPage({ searchParams }: PageProps) {
     );
   }
 
-  const totalPages = Math.ceil((count ?? 0) / DEFAULT_PAGE_SIZE);
+  const totalPages = Math.ceil((count ?? 0) / pageSize);
 
   function buildUrl(overrides: Record<string, string | undefined>) {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (page > 1) p.set("page", String(page));
     if (showDeleted) p.set("deleted", "1");
+    if (pageSize !== DEFAULT_PAGE_SIZE) p.set("limit", String(pageSize));
     Object.entries(overrides).forEach(([k, v]) => {
       if (v === undefined) p.delete(k);
       else p.set(k, v);
@@ -136,6 +139,7 @@ export default async function MemberListPage({ searchParams }: PageProps) {
               <TableHead>Telepon</TableHead>
               <TableHead>Tipe</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Kelas</TableHead>
               <TableHead>Akun</TableHead>
               <TableHead>Bergabung</TableHead>
             </TableRow>
@@ -143,7 +147,7 @@ export default async function MemberListPage({ searchParams }: PageProps) {
           <TableBody>
             {!members || members.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                   {q ? `Tidak ada hasil untuk "${q}"` : "Belum ada anggota."}
                 </TableCell>
               </TableRow>
@@ -170,6 +174,15 @@ export default async function MemberListPage({ searchParams }: PageProps) {
                       <Badge variant={STATUS_VARIANT[m.status] ?? "outline"}>
                         {STATUS_LABEL[m.status] ?? m.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const cms = Array.isArray(m.class_members) ? m.class_members : [];
+                        const active = cms.filter((c: { status: string }) => c.status === "enrolled").length;
+                        return active > 0
+                          ? <Badge variant="default">{active} kelas</Badge>
+                          : <Badge variant="outline" className="text-muted-foreground">Belum</Badge>;
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Badge variant={m.has_account ? "default" : "outline"}>
@@ -224,26 +237,7 @@ export default async function MemberListPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Hal. {page} / {totalPages}</span>
-          <div className="flex gap-2">
-            <Link
-              href={buildUrl({ page: String(page - 1) })}
-              className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }), page <= 1 && "pointer-events-none opacity-50")}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Link>
-            <Link
-              href={buildUrl({ page: String(page + 1) })}
-              className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }), page >= totalPages && "pointer-events-none opacity-50")}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      )}
+      <PaginationControls page={page} totalPages={totalPages} pageSize={pageSize} buildUrl={buildUrl} />
     </div>
   );
 }

@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
 
 const STATUS_LABEL: Record<string, string> = {
   present: "Hadir",
@@ -39,6 +39,7 @@ interface PageProps {
     status?: string;
     date_from?: string;
     date_to?: string;
+    limit?: string;
   }>;
 }
 
@@ -52,12 +53,13 @@ export default async function AbsensiPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
   const classFilter = params.class_id ?? "";
   const statusFilter = params.status ?? "";
   const dateFrom = params.date_from ?? "";
   const dateTo = params.date_to ?? "";
-  const from = (page - 1) * DEFAULT_PAGE_SIZE;
-  const to = from + DEFAULT_PAGE_SIZE - 1;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   // Fetch active classes for filter dropdown
   const { data: classes } = await supabase
@@ -92,7 +94,7 @@ export default async function AbsensiPage({ searchParams }: PageProps) {
   }
 
   const { data: records, count } = await query;
-  const totalPages = Math.ceil((count ?? 0) / DEFAULT_PAGE_SIZE);
+  const totalPages = Math.ceil((count ?? 0) / pageSize);
 
   function buildUrl(overrides: Record<string, string | undefined>) {
     const p = new URLSearchParams();
@@ -102,6 +104,7 @@ export default async function AbsensiPage({ searchParams }: PageProps) {
     if (dateFrom) p.set("date_from", dateFrom);
     if (dateTo) p.set("date_to", dateTo);
     if (page > 1) p.set("page", String(page));
+    if (pageSize !== DEFAULT_PAGE_SIZE) p.set("limit", String(pageSize));
     Object.entries(overrides).forEach(([k, v]) => {
       if (v === undefined) p.delete(k);
       else p.set(k, v);
@@ -237,26 +240,7 @@ export default async function AbsensiPage({ searchParams }: PageProps) {
         </Table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Hal. {page} / {totalPages}</span>
-          <div className="flex gap-2">
-            <Link
-              href={buildUrl({ page: String(page - 1) })}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), page <= 1 && "pointer-events-none opacity-50")}
-            >
-              Prev
-            </Link>
-            <Link
-              href={buildUrl({ page: String(page + 1) })}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), page >= totalPages && "pointer-events-none opacity-50")}
-            >
-              Next
-            </Link>
-          </div>
-        </div>
-      )}
+      <PaginationControls page={page} totalPages={totalPages} pageSize={pageSize} buildUrl={buildUrl} />
     </div>
   );
 }

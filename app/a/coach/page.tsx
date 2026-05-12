@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Search, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Aktif",
@@ -24,7 +24,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 };
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; page?: string; deleted?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; deleted?: string; limit?: string }>;
 }
 
 export default async function CoachListPage({ searchParams }: PageProps) {
@@ -35,9 +35,10 @@ export default async function CoachListPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
   const showDeleted = params.deleted === "1";
-  const from = (page - 1) * DEFAULT_PAGE_SIZE;
-  const to = from + DEFAULT_PAGE_SIZE - 1;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   let query = supabase
     .from("coaches")
@@ -68,13 +69,14 @@ export default async function CoachListPage({ searchParams }: PageProps) {
     );
   }
 
-  const totalPages = Math.ceil((count ?? 0) / DEFAULT_PAGE_SIZE);
+  const totalPages = Math.ceil((count ?? 0) / pageSize);
 
   function buildUrl(overrides: Record<string, string | undefined>) {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (page > 1) p.set("page", String(page));
     if (showDeleted) p.set("deleted", "1");
+    if (pageSize !== DEFAULT_PAGE_SIZE) p.set("limit", String(pageSize));
     Object.entries(overrides).forEach(([k, v]) => {
       if (v === undefined) p.delete(k);
       else p.set(k, v);
@@ -196,19 +198,7 @@ export default async function CoachListPage({ searchParams }: PageProps) {
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Hal. {page} / {totalPages}</span>
-          <div className="flex gap-2">
-            <Link href={buildUrl({ page: String(page - 1) })} className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }), page <= 1 && "pointer-events-none opacity-50")}>
-              <ChevronLeft className="h-4 w-4" />
-            </Link>
-            <Link href={buildUrl({ page: String(page + 1) })} className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }), page >= totalPages && "pointer-events-none opacity-50")}>
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      )}
+      <PaginationControls page={page} totalPages={totalPages} pageSize={pageSize} buildUrl={buildUrl} />
     </div>
   );
 }

@@ -50,20 +50,38 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/a/rapot", label: "Rapot", icon: GraduationCap },
   { href: "/a/finansial", label: "Finansial", icon: Banknote },
   { href: "/a/reminder", label: "Reminder WA", icon: MessageCircle },
-  { href: "/a/approval", label: "Persetujuan", icon: CheckSquare },
+  { href: "/a/coach/sertifikat", label: "Sertifikat Pelatih", icon: Award },
+  { href: "/a/approval", label: "Edit Request", icon: CheckSquare },
   { href: "/a/log", label: "Log Aktivitas", icon: ScrollText },
 ];
 
 const OWNER_ITEMS: NavItem[] = [
   { href: "/a/admin", label: "Kelola Admin", icon: ShieldCheck, ownerOnly: true },
   { href: "/a/cabang", label: "Cabang", icon: Building2, ownerOnly: true },
-  { href: "/a/coach/sertifikat", label: "Sertifikat Pelatih", icon: Award, ownerOnly: true },
 ];
 
-export function AdminSidebar({ role, branchName }: { role: string; branchName?: string | null }) {
+interface PendingCounts {
+  registrasi: number;
+  approval: number;
+}
+
+export function AdminSidebar({
+  role,
+  branchName,
+  pendingCounts,
+}: {
+  role: string;
+  branchName?: string | null;
+  pendingCounts?: PendingCounts;
+}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isOwner = role === "owner";
+
+  const badgeMap: Record<string, number> = {
+    "/a/member/registrasi": pendingCounts?.registrasi ?? 0,
+    "/a/approval": pendingCounts?.approval ?? 0,
+  };
 
   const allItems = isOwner ? [...NAV_ITEMS, ...OWNER_ITEMS] : NAV_ITEMS;
 
@@ -94,6 +112,7 @@ export function AdminSidebar({ role, branchName }: { role: string; branchName?: 
         {allItems.filter((item) => !item.ownerOnly).map(({ href, label, icon: Icon, exact, exclude }) => {
           const isExcluded = exclude?.some((ex) => pathname === ex || pathname.startsWith(ex + "/"));
           const isActive = !isExcluded && (exact ? pathname === href : pathname === href || pathname.startsWith(href + "/"));
+          const badge = badgeMap[href] ?? 0;
           return (
             <Link
               key={href}
@@ -106,8 +125,18 @@ export function AdminSidebar({ role, branchName }: { role: string; branchName?: 
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
-              <Icon className="h-4 w-4" />
-              {label}
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="flex-1 truncate">{label}</span>
+              {badge > 0 && (
+                <span className={cn(
+                  "inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[10px] font-bold shrink-0",
+                  isActive
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-destructive text-destructive-foreground"
+                )}>
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
             </Link>
           );
         })}

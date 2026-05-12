@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { UserX, UserPlus, Search } from "lucide-react";
 import { enrollMember, unenrollMember } from "@/lib/actions/class";
@@ -49,6 +50,7 @@ export function MemberRosterTab({
   enrolled,
   availableMembers,
 }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
@@ -85,6 +87,7 @@ export function MemberRosterTab({
       if (result.error) { toast.error(result.error); return; }
       toast.success("Anggota berhasil didaftarkan");
       setMemberSearch("");
+      router.refresh();
     });
   }
 
@@ -94,6 +97,7 @@ export function MemberRosterTab({
       const result = await unenrollMember(classId, memberId);
       if (result.error) { toast.error(result.error); return; }
       toast.success("Anggota berhasil dikeluarkan");
+      router.refresh();
     });
   }
 

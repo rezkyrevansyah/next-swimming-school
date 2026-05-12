@@ -407,16 +407,13 @@ export async function enrollMember(
     return { error: "Kapasitas kelas sudah penuh." };
   }
 
-  const { error } = await supabase.from("class_members").insert({
-    class_id: classId,
-    member_id: memberId,
-    status: "enrolled",
-  });
+  // Upsert: handles both new enrollments and re-enrolling a previously withdrawn member
+  const { error } = await supabase.from("class_members").upsert(
+    { class_id: classId, member_id: memberId, status: "enrolled" },
+    { onConflict: "class_id,member_id" }
+  );
 
   if (error) {
-    if (error.code === "23505") {
-      return { error: "Anggota sudah terdaftar di kelas ini." };
-    }
     return { error: `Gagal mendaftarkan anggota: ${error.message}` };
   }
 

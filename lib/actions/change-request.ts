@@ -74,9 +74,21 @@ export async function approveChangeRequest(id: string): Promise<ActionResult> {
   if (fetchErr || !req) return { error: "Permintaan tidak ditemukan atau sudah diproses." };
 
   const changes = req.changes as Changes;
-  const updates: Record<string, string | null> = {};
+  // Fields that are stored as PostgreSQL arrays
+  const ARRAY_FIELDS = new Set(["specializations", "certifications", "languages"]);
+  const updates: Record<string, unknown> = {};
   for (const [field, { new: newVal }] of Object.entries(changes)) {
-    updates[field] = newVal;
+    if (ARRAY_FIELDS.has(field)) {
+      if (Array.isArray(newVal)) {
+        updates[field] = newVal;
+      } else if (typeof newVal === "string" && newVal.length > 0) {
+        updates[field] = newVal.split(",").map((s) => s.trim()).filter(Boolean);
+      } else {
+        updates[field] = [];
+      }
+    } else {
+      updates[field] = newVal;
+    }
   }
 
   // Apply ke tabel yang sesuai

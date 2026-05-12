@@ -2,26 +2,64 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ApprovalCard } from "./approval-card";
 import { CheckSquare } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
+import { cn } from "@/lib/utils";
 
-export default async function ApprovalPage() {
+interface PageProps {
+  searchParams: Promise<{ status?: string; page?: string; limit?: string }>;
+}
+
+const STATUS_TABS = [
+  { value: "pending", label: "Menunggu" },
+  { value: "approved", label: "Disetujui" },
+  { value: "rejected", label: "Ditolak" },
+  { value: "all", label: "Semua" },
+];
+
+export default async function ApprovalPage({ searchParams }: PageProps) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch pending change requests
-  const { data: requests } = await supabase
+  const params = await searchParams;
+  const statusFilter = params.status ?? "pending";
+  const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  function buildUrl(overrides: Record<string, string | undefined>) {
+    const p = new URLSearchParams();
+    if (statusFilter !== "pending") p.set("status", statusFilter);
+    if (page > 1) p.set("page", String(page));
+    if (pageSize !== DEFAULT_PAGE_SIZE) p.set("limit", String(pageSize));
+    Object.entries(overrides).forEach(([k, v]) => {
+      if (v === undefined) p.delete(k);
+      else p.set(k, v);
+    });
+    const s = p.toString();
+    return `/a/approval${s ? `?${s}` : ""}`;
+  }
+
+  let query = supabase
     .from("change_requests")
-    .select("*")
-    .eq("status", "pending")
-    .order("created_at", { ascending: true });
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
-  // Fetch requester names via admin client (need to join auth.users)
+  if (statusFilter !== "all") {
+    query = query.eq("status", statusFilter);
+  }
+
+  const { data: requests, count } = await query;
+  const totalPages = Math.ceil((count ?? 0) / pageSize);
+
+  // Fetch names from member/coach profiles
   const db = createAdminClient();
-  const requesterIds = [...new Set((requests ?? []).map((r) => r.requester_id))];
-
-  // Get names from member_profiles and coach_profiles based on resource_type
   const memberResourceIds = (requests ?? [])
     .filter((r) => r.resource_type === "member_profile")
     .map((r) => r.resource_id);
@@ -56,16 +94,31 @@ export default async function ApprovalPage() {
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-3xl">
       <div>
-        <h1 className="text-xl md:text-2xl font-semibold">Persetujuan</h1>
+        <h1 className="text-xl md:text-2xl font-semibold">Edit Request</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {enriched.length} permintaan menunggu persetujuan
+          {count ?? 0} permintaan
         </p>
+      </div>
+
+      {/* Status filter */}
+      <div className="flex gap-2 flex-wrap">
+        {STATUS_TABS.map((tab) => (
+          <Link
+            key={tab.value}
+            href={buildUrl({ status: tab.value === "pending" ? undefined : tab.value, page: "1" })}
+            className={cn(
+              buttonVariants({ size: "sm", variant: statusFilter === tab.value ? "default" : "outline" })
+            )}
+          >
+            {tab.label}
+          </Link>
+        ))}
       </div>
 
       {enriched.length === 0 ? (
         <div className="rounded-xl border border-dashed p-16 text-center text-muted-foreground flex flex-col items-center gap-3">
           <CheckSquare className="h-10 w-10 opacity-30" />
-          <p>Tidak ada permintaan yang perlu disetujui.</p>
+          <p>Tidak ada permintaan.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -74,6 +127,13 @@ export default async function ApprovalPage() {
           ))}
         </div>
       )}
+
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        buildUrl={buildUrl}
+      />
     </div>
   );
 }
