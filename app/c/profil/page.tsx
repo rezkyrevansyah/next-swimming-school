@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AlertCircle, IdCard, Phone, Calendar, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CoachQrDisplay } from "./coach-qr-display";
+import { CertificateSection } from "./certificate-section";
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null }) {
   if (!value) return null;
@@ -30,7 +31,8 @@ export default async function CoachProfilPage() {
     .select(`
       id, coach_id_code, status,
       coach_profiles(full_name, nickname, dob, gender, phone, photo_url, specializations),
-      coach_branches!inner(branch_id, is_primary, branches(name))
+      coach_branches!inner(branch_id, is_primary, branches(name)),
+      coach_certificates(id, name, photo_url, issued_year, valid_until, no_expiry, approval_status, approval_notes)
     `)
     .eq("user_id", user.id)
     .eq("coach_branches.is_primary", true)
@@ -49,6 +51,7 @@ export default async function CoachProfilPage() {
   const profile = Array.isArray(coach.coach_profiles) ? coach.coach_profiles[0] : coach.coach_profiles;
   const branchEntry = Array.isArray(coach.coach_branches) ? coach.coach_branches[0] : coach.coach_branches;
   const branch = Array.isArray(branchEntry?.branches) ? branchEntry.branches[0] : branchEntry?.branches;
+  const certificates = Array.isArray(coach.coach_certificates) ? coach.coach_certificates : [];
 
   const displayName = profile?.nickname || profile?.full_name || "Pelatih";
 
@@ -137,6 +140,9 @@ export default async function CoachProfilPage() {
           value={branch?.name ?? null}
         />
       </div>
+
+      {/* Sertifikat */}
+      <CertificateSection initialCerts={certificates as any} />
 
       {/* Contact admin note */}
       <div className="rounded-xl border border-dashed px-4 py-3 text-center text-xs text-muted-foreground">

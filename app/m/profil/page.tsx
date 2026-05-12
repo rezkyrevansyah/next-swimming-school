@@ -1,11 +1,12 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { QrCode } from "lucide-react";
+import { QrCode, Clock } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { EditProfilForm } from "./edit-profil-form";
 
 const GENDER_LABEL: Record<string, string> = {
   male: "Laki-laki",
@@ -31,7 +32,7 @@ export default async function MemberProfilPage() {
     .select(`
       id, member_id_code, status, type, created_at,
       branches(name),
-      member_profiles(full_name, nickname, dob, gender, phone, phone_owner, parent_name, parent_phone, address, health_history)
+      member_profiles(member_id, full_name, nickname, dob, gender, phone, phone_owner, parent_name, parent_phone, address, health_history)
     `)
     .eq("user_id", user.id)
     .single();
@@ -44,13 +45,22 @@ export default async function MemberProfilPage() {
 
   const branch = Array.isArray(member.branches) ? member.branches[0] : member.branches;
 
+  // Cek apakah ada pending change request untuk member ini
+  const { data: pendingRequest } = await supabase
+    .from("change_requests")
+    .select("id, created_at")
+    .eq("resource_type", "member_profile")
+    .eq("resource_id", profile?.member_id ?? "")
+    .eq("status", "pending")
+    .maybeSingle();
+
   const fields = [
     { label: "Nama Lengkap", value: profile?.full_name ?? "—" },
     { label: "Nama Panggilan", value: profile?.nickname || "—" },
     { label: "Tanggal Lahir", value: formatDate(profile?.dob ?? null) },
     { label: "Jenis Kelamin", value: GENDER_LABEL[profile?.gender ?? ""] ?? "—" },
     { label: "No. HP", value: profile?.phone || "—" },
-    { label: "Pemilik HP", value: profile?.phone_owner || "—" },
+    { label: "Pemilik HP", value: profile?.phone_owner === "parent" ? "Orang Tua" : "Sendiri" },
     { label: "Nama Orang Tua/Wali", value: profile?.parent_name || "—" },
     { label: "No. HP Orang Tua", value: profile?.parent_phone || "—" },
     { label: "Alamat", value: profile?.address || "—" },
@@ -79,7 +89,9 @@ export default async function MemberProfilPage() {
 
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground pt-1 border-t">
           {branch?.name && <span>Cabang: {branch.name}</span>}
-          {member.type && <span>· Tipe: {member.type === "regular" ? "Reguler" : member.type === "special" ? "Khusus" : member.type}</span>}
+          {member.type && (
+            <span>· Tipe: {member.type === "regular" ? "Reguler" : member.type === "special" ? "Khusus" : member.type}</span>
+          )}
           <span>· Bergabung: {formatDate(member.created_at ?? null)}</span>
         </div>
       </div>
@@ -87,14 +99,21 @@ export default async function MemberProfilPage() {
       {/* QR shortcut */}
       <Link
         href="/m/qr"
-        className={cn(
-          buttonVariants({ variant: "outline" }),
-          "w-full gap-2 justify-center"
-        )}
+        className={cn(buttonVariants({ variant: "outline" }), "w-full gap-2 justify-center")}
       >
         <QrCode className="h-4 w-4" />
         Tampilkan QR Code
       </Link>
+
+      {/* Pending change request notice */}
+      {pendingRequest && (
+        <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-2">
+          <Clock className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            Ada permintaan perubahan data yang sedang menunggu persetujuan admin.
+          </p>
+        </div>
+      )}
 
       {/* Profile details */}
       <div className="rounded-xl border divide-y">
@@ -106,9 +125,14 @@ export default async function MemberProfilPage() {
         ))}
       </div>
 
-      <p className="text-xs text-center text-muted-foreground pb-2">
-        Untuk mengubah data, hubungi admin atau pelatih.
-      </p>
+      {/* Edit form — hidden if pending request exists */}
+      {!pendingRequest && profile ? (
+        <EditProfilForm profile={profile} />
+      ) : !pendingRequest ? null : (
+        <p className="text-xs text-center text-muted-foreground pb-2">
+          Selesaikan permintaan yang ada sebelum mengajukan perubahan baru.
+        </p>
+      )}
     </div>
   );
 }

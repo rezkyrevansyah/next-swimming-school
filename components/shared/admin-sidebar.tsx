@@ -16,6 +16,10 @@ import {
   Building2,
   ShieldCheck,
   Crown,
+  MapPin,
+  ScrollText,
+  CheckSquare,
+  Award,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -38,16 +42,21 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/a/member", label: "Anggota", icon: Users, exclude: ["/a/member/registrasi"] },
   { href: "/a/coach", label: "Pelatih", icon: UserCheck },
   { href: "/a/kelas", label: "Kelas", icon: BookOpen },
-  { href: "/a/absensi", label: "Absensi", icon: ClipboardList },
+  { href: "/a/absensi", label: "Absensi Member", icon: ClipboardList, exclude: ["/a/absensi/coach"] },
+  { href: "/a/absensi/coach", label: "Absensi Pelatih", icon: MapPin, exact: false },
   { href: "/a/semester", label: "Semester", icon: GraduationCap },
+  { href: "/a/rapot", label: "Rapot", icon: GraduationCap },
+  { href: "/a/approval", label: "Persetujuan", icon: CheckSquare },
+  { href: "/a/log", label: "Log Aktivitas", icon: ScrollText },
 ];
 
 const OWNER_ITEMS: NavItem[] = [
   { href: "/a/admin", label: "Kelola Admin", icon: ShieldCheck, ownerOnly: true },
   { href: "/a/cabang", label: "Cabang", icon: Building2, ownerOnly: true },
+  { href: "/a/coach/sertifikat", label: "Sertifikat Pelatih", icon: Award, ownerOnly: true },
 ];
 
-export function AdminSidebar({ role }: { role: string }) {
+export function AdminSidebar({ role, branchName }: { role: string; branchName?: string | null }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isOwner = role === "owner";
@@ -58,7 +67,14 @@ export function AdminSidebar({ role }: { role: string }) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center justify-between h-14 px-4 border-b">
-        <LogoCircle href="/a/dashboard" size={36} />
+        <div className="flex items-center gap-2 min-w-0">
+          <LogoCircle href="/a/dashboard" size={36} />
+          {branchName && (
+            <span className="text-xs font-medium text-muted-foreground truncate max-w-[100px]" title={branchName}>
+              {branchName}
+            </span>
+          )}
+        </div>
         <button
           className="md:hidden"
           onClick={() => setMobileOpen(false)}

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { selfRegisterMember } from "@/lib/actions/public";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Branch {
@@ -39,9 +40,9 @@ const selectCls =
   "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20 transition-colors";
 
 export function RegisterForm({ branches }: { branches: Branch[] }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [successCode, setSuccessCode] = useState<string | null>(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,34 +53,9 @@ export function RegisterForm({ branches }: { branches: Branch[] }) {
       if (res.error) {
         setError(res.error);
       } else {
-        setSuccessCode(res.data!.memberCode);
+        router.push(`/daftar/member/sukses?kode=${encodeURIComponent(res.data!.memberCode)}`);
       }
     });
-  }
-
-  if (successCode) {
-    return (
-      <div className="rounded-2xl border border-sky-200 bg-sky-50 p-8 text-center space-y-4">
-        <div className="flex justify-center">
-          <CheckCircle2 className="h-12 w-12 text-sky-500" />
-        </div>
-        <div>
-          <h3 className="text-lg font-bold text-gray-900">Pendaftaran Berhasil!</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Nomor registrasimu adalah:
-          </p>
-          <p className="text-2xl font-mono font-bold text-sky-600 mt-2">{successCode}</p>
-        </div>
-        <div className="rounded-xl bg-white border border-sky-100 p-4 text-sm text-gray-600 text-left space-y-2">
-          <p>✅ Data kamu sudah kami terima</p>
-          <p>📞 Admin akan menghubungi kamu untuk konfirmasi kelas dan pembayaran</p>
-          <p>🎉 Setelah dikonfirmasi, kamu bisa langsung mulai latihan!</p>
-        </div>
-        <p className="text-xs text-gray-400">
-          Simpan nomor registrasi ini sebagai referensi.
-        </p>
-      </div>
-    );
   }
 
   return (

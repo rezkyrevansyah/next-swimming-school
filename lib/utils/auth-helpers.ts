@@ -24,7 +24,7 @@ export async function getCurrentUserRole(): Promise<string | null> {
 export function getRoleRedirectPath(role: string | null): string {
   switch (role) {
     case "owner":
-      return "/a/dashboard";
+      return "/o/dashboard";
     case "manager":
     case "admin":
       return "/a/dashboard";

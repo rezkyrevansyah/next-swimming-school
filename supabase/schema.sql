@@ -168,6 +168,7 @@ CREATE TABLE public.coaches (
   deleted_at timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  password_changed_at timestamp with time zone,
   CONSTRAINT coaches_pkey PRIMARY KEY (id),
   CONSTRAINT coaches_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -213,6 +214,7 @@ CREATE TABLE public.members (
   deleted_at timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  password_changed_at timestamp with time zone,
   CONSTRAINT members_pkey PRIMARY KEY (id),
   CONSTRAINT members_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT members_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id),

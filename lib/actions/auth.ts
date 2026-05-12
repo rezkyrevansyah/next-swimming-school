@@ -54,7 +54,7 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
 export async function requestPasswordReset(email: string): Promise<ActionResult> {
   const supabase = createClient(await cookies());
   const reqHeaders = await headers();
-  const origin = reqHeaders.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const origin = reqHeaders.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${origin}/auth/reset-password`,

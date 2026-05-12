@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MemberProfileTab } from "./member-profile-tab";
 import { MemberDangerTab } from "./member-danger-tab";
+import { MemberClassTab } from "./member-class-tab";
+import { MemberRapotTab } from "./member-rapot-tab";
 import { MemberQrCard } from "@/components/shared/member-qr-card";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -60,6 +62,35 @@ export default async function MemberDetailPage({ params }: PageProps) {
     email = authUser?.user?.email ?? null;
   }
 
+  // Fetch class enrollments
+  const { data: classEnrollments } = await supabase
+    .from("class_members")
+    .select("status, classes(id, name, status)")
+    .eq("member_id", id)
+    .order("created_at", { ascending: false });
+
+  // Fetch active classes for enroll dropdown
+  const { data: activeClasses } = await supabase
+    .from("classes")
+    .select("id, name")
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .order("name");
+
+  // Fetch report cards
+  const { data: reportCards } = await supabase
+    .from("report_cards")
+    .select(`
+      id, status, published_at, attendance_rate,
+      sessions_total, sessions_present, sessions_late,
+      sessions_absent, skill_scores, coach_notes,
+      semesters(id, name, start_date, end_date),
+      classes(id, name),
+      coaches(id, coach_profiles(full_name))
+    `)
+    .eq("member_id", id)
+    .order("published_at", { ascending: false, nullsFirst: false });
+
   return (
     <div className="p-6 max-w-3xl space-y-6">
       {/* Header */}
@@ -92,12 +123,33 @@ export default async function MemberDetailPage({ params }: PageProps) {
       <Tabs defaultValue="profil">
         <TabsList variant="line">
           <TabsTrigger value="profil">Profil</TabsTrigger>
+          <TabsTrigger value="kelas">Kelas</TabsTrigger>
+          <TabsTrigger value="rapot">
+            Rapot
+            {(reportCards ?? []).length > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-muted text-muted-foreground text-[10px] font-bold">
+                {(reportCards ?? []).length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="qr">QR Code</TabsTrigger>
           <TabsTrigger value="bahaya">Zona Berbahaya</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profil" className="mt-4">
           <MemberProfileTab member={member} profile={profile} branch={branch} email={email} />
+        </TabsContent>
+
+        <TabsContent value="kelas" className="mt-4">
+          <MemberClassTab
+            memberId={member.id}
+            enrolled={(classEnrollments ?? []) as any}
+            availableClasses={activeClasses ?? []}
+          />
+        </TabsContent>
+
+        <TabsContent value="rapot" className="mt-4">
+          <MemberRapotTab reports={(reportCards ?? []) as any} />
         </TabsContent>
 
         <TabsContent value="qr" className="mt-4">

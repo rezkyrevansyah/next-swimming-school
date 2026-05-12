@@ -8,7 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CoachProfileTab } from "./coach-profile-tab";
 import { CoachDangerTab } from "./coach-danger-tab";
+import { CoachClassTab } from "./coach-class-tab";
 import { CoachStatusActions } from "./coach-status-actions";
+import { CoachCertificateTab } from "./coach-certificate-tab";
+import { CoachClockinTab } from "./coach-clockin-tab";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Aktif",
@@ -63,6 +66,19 @@ export default async function CoachDetailPage({ params }: PageProps) {
     email = authUser?.user?.email ?? null;
   }
 
+  // Fetch classes assigned to this coach
+  const { data: coachClasses } = await supabase
+    .from("class_coaches")
+    .select("classes(id, name, status, class_schedules(day_of_week, start_time, end_time))")
+    .eq("coach_id", id);
+
+  // Fetch certificates
+  const { data: certificates } = await supabase
+    .from("coach_certificates")
+    .select("id, name, photo_url, issued_year, valid_until, no_expiry, approval_status, approval_notes, approved_at")
+    .eq("coach_id", id)
+    .order("created_at", { ascending: false });
+
   return (
     <div className="p-6 max-w-3xl space-y-6">
       <div className="flex items-start gap-3">
@@ -93,6 +109,16 @@ export default async function CoachDetailPage({ params }: PageProps) {
       <Tabs defaultValue="profil">
         <TabsList variant="line">
           <TabsTrigger value="profil">Profil</TabsTrigger>
+          <TabsTrigger value="kelas">Kelas</TabsTrigger>
+          <TabsTrigger value="sertifikat">
+            Sertifikat
+            {(certificates ?? []).filter(c => c.approval_status === "pending_approval").length > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+                {(certificates ?? []).filter(c => c.approval_status === "pending_approval").length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="absensi">Absensi</TabsTrigger>
           <TabsTrigger value="bahaya">Zona Berbahaya</TabsTrigger>
         </TabsList>
 
@@ -101,6 +127,28 @@ export default async function CoachDetailPage({ params }: PageProps) {
             <CoachStatusActions coachId={coach.id} currentStatus={coach.status} />
           )}
           <CoachProfileTab coach={coach} profile={profile} email={email} branches={branches} />
+        </TabsContent>
+
+        <TabsContent value="kelas" className="mt-4">
+          <CoachClassTab
+            classes={(coachClasses ?? []).map((cc) => {
+              const cls = Array.isArray(cc.classes) ? cc.classes[0] : cc.classes;
+              return {
+                id: cls?.id ?? "",
+                name: cls?.name ?? "",
+                status: cls?.status ?? "",
+                class_schedules: (Array.isArray(cls?.class_schedules) ? cls.class_schedules : []) as any,
+              };
+            }).filter((c) => c.id)}
+          />
+        </TabsContent>
+
+        <TabsContent value="sertifikat" className="mt-4">
+          <CoachCertificateTab certs={(certificates ?? []) as any} />
+        </TabsContent>
+
+        <TabsContent value="absensi" className="mt-4">
+          <CoachClockinTab coachId={coach.id} />
         </TabsContent>
 
         <TabsContent value="bahaya" className="mt-4">

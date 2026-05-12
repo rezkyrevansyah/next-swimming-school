@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-async function getDashboardStats() {
+async function getDashboardStats(branchId: string) {
   const db = createAdminClient();
   const [
     { count: totalMembers },
@@ -20,20 +20,22 @@ async function getDashboardStats() {
     db
       .from("members")
       .select("*", { count: "exact", head: true })
+      .eq("branch_id", branchId)
       .is("deleted_at", null),
     db
       .from("members")
       .select("*", { count: "exact", head: true })
+      .eq("branch_id", branchId)
       .is("deleted_at", null)
       .eq("status", "active"),
     db
-      .from("coaches")
+      .from("coach_branches")
       .select("*", { count: "exact", head: true })
-      .is("deleted_at", null)
-      .eq("status", "active"),
+      .eq("branch_id", branchId),
     db
       .from("classes")
       .select("*", { count: "exact", head: true })
+      .eq("branch_id", branchId)
       .is("deleted_at", null)
       .eq("status", "active"),
   ]);
@@ -74,14 +76,25 @@ const STAT_CARDS = [
 ];
 
 export default async function AdminDashboardPage() {
-  const supabase = createClient(await cookies());
+  const jar = await cookies();
+  const supabase = createClient(jar);
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
-  const stats = await getDashboardStats();
+  // Owner masuk via cookie; admin/manager pakai branch dari user_roles
+  const activeBranchId = jar.get("active_branch_id")?.value ?? null;
+  let branchId = activeBranchId;
+  if (!branchId) {
+    const { data } = await supabase.rpc("user_branch_id");
+    branchId = data ?? null;
+  }
+
+  if (!branchId) redirect("/login");
+
+  const stats = await getDashboardStats(branchId);
 
   return (
     <div className="p-6 space-y-6">

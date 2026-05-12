@@ -358,3 +358,223 @@ export async function clockIn(input: ClockInInput): Promise<ActionResult<{ dista
 
   return { data: { distanceM: distanceM ?? 0 } };
 }
+
+// ─── Suspicious Flag ──────────────────────────────────────────────────────────
+
+/**
+ * Admin toggle suspicious_flag pada clock-in record pelatih.
+ */
+export async function toggleSuspiciousFlag(
+  recordId: string,
+  newFlag: boolean
+): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { error } = await supabase
+    .from("coach_clock_records")
+    .update({ suspicious_flag: newFlag })
+    .eq("id", recordId);
+
+  if (error) return { error: `Gagal memperbarui flag: ${error.message}` };
+
+  revalidatePath("/a/absensi/coach");
+  return { data: undefined };
+}
+
+// ─── Sertifikat ───────────────────────────────────────────────────────────────
+
+/**
+ * Upload sertifikat coach. File disimpan di Supabase Storage bucket 'certificates'.
+ * Hanya coach sendiri yang bisa upload.
+ */
+export async function uploadCertificate(formData: FormData): Promise<ActionResult<{ id: string }>> {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const name = (formData.get("name") as string)?.trim();
+  const issuedYear = formData.get("issued_year") as string;
+  const validUntil = formData.get("valid_until") as string;
+  const noExpiry = formData.get("no_expiry") === "true";
+  const file = formData.get("photo") as File | null;
+
+  if (!name) return { error: "Nama sertifikat wajib diisi." };
+  if (!issuedYear) return { error: "Tahun terbit wajib diisi." };
+
+  // Get coach_id dari user_id
+  const { data: coach } = await supabase
+    .from("coaches")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!coach) return { error: "Data pelatih tidak ditemukan." };
+
+  let photoUrl: string | null = null;
+
+  // Upload foto ke Supabase Storage jika ada
+  if (file && file.size > 0) {
+    const bytes = await file.arrayBuffer();
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${coach.id}/${Date.now()}.${ext}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from("certificates")
+      .upload(path, bytes, { contentType: file.type, upsert: false });
+
+    if (uploadErr) return { error: `Gagal upload foto: ${uploadErr.message}` };
+
+    const { data: urlData } = supabase.storage.from("certificates").getPublicUrl(path);
+    photoUrl = urlData.publicUrl;
+  }
+
+  const { data, error } = await supabase
+    .from("coach_certificates")
+    .insert({
+      coach_id: coach.id,
+      name,
+      photo_url: photoUrl,
+      issued_year: parseInt(issuedYear, 10),
+      valid_until: noExpiry ? null : (validUntil || null),
+      no_expiry: noExpiry,
+      approval_status: "pending_approval",
+    })
+    .select("id")
+    .single();
+
+  if (error) return { error: `Gagal menyimpan sertifikat: ${error.message}` };
+
+  revalidatePath("/c/profil");
+  revalidatePath(`/a/coach/${coach.id}`);
+  revalidatePath("/a/coach/sertifikat");
+
+  return { data: { id: data.id } };
+}
+
+/**
+ * Hapus sertifikat coach (hanya oleh coach sendiri, dan hanya yang belum diapprove).
+ */
+export async function deleteCertificate(certId: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { data: coach } = await supabase
+    .from("coaches")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!coach) return { error: "Data pelatih tidak ditemukan." };
+
+  const { data: cert } = await supabase
+    .from("coach_certificates")
+    .select("id, coach_id, photo_url, approval_status")
+    .eq("id", certId)
+    .single();
+
+  if (!cert) return { error: "Sertifikat tidak ditemukan." };
+  if (cert.coach_id !== coach.id) return { error: "Tidak diizinkan." };
+  if (cert.approval_status === "approved") return { error: "Sertifikat yang sudah disetujui tidak bisa dihapus." };
+
+  // Hapus foto dari storage jika ada
+  if (cert.photo_url) {
+    const path = cert.photo_url.split("/certificates/").pop();
+    if (path) {
+      await supabase.storage.from("certificates").remove([path]);
+    }
+  }
+
+  const { error } = await supabase.from("coach_certificates").delete().eq("id", certId);
+  if (error) return { error: `Gagal menghapus sertifikat: ${error.message}` };
+
+  revalidatePath("/c/profil");
+  revalidatePath(`/a/coach/${coach.id}`);
+  revalidatePath("/a/coach/sertifikat");
+
+  return { data: undefined };
+}
+
+/**
+ * Admin/manager approve sertifikat coach.
+ */
+export async function approveCertificate(certId: string, notes?: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { data: cert } = await supabase
+    .from("coach_certificates")
+    .select("id, coach_id")
+    .eq("id", certId)
+    .single();
+
+  if (!cert) return { error: "Sertifikat tidak ditemukan." };
+
+  const { error } = await supabase
+    .from("coach_certificates")
+    .update({
+      approval_status: "approved",
+      approved_by: user.id,
+      approved_at: new Date().toISOString(),
+      approval_notes: notes || null,
+    })
+    .eq("id", certId);
+
+  if (error) return { error: `Gagal menyetujui: ${error.message}` };
+
+  await logActivity(supabase, {
+    action: "approve_certificate",
+    resource_type: "coach_certificates",
+    resource_id: certId,
+  });
+
+  revalidatePath("/a/coach/sertifikat");
+  revalidatePath(`/a/coach/${cert.coach_id}`);
+  revalidatePath("/c/profil");
+
+  return { data: undefined };
+}
+
+/**
+ * Admin/manager reject sertifikat coach.
+ */
+export async function rejectCertificate(certId: string, notes: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { data: cert } = await supabase
+    .from("coach_certificates")
+    .select("id, coach_id")
+    .eq("id", certId)
+    .single();
+
+  if (!cert) return { error: "Sertifikat tidak ditemukan." };
+
+  const { error } = await supabase
+    .from("coach_certificates")
+    .update({
+      approval_status: "rejected",
+      approved_by: user.id,
+      approved_at: new Date().toISOString(),
+      approval_notes: notes || null,
+    })
+    .eq("id", certId);
+
+  if (error) return { error: `Gagal menolak: ${error.message}` };
+
+  await logActivity(supabase, {
+    action: "reject_certificate",
+    resource_type: "coach_certificates",
+    resource_id: certId,
+  });
+
+  revalidatePath("/a/coach/sertifikat");
+  revalidatePath(`/a/coach/${cert.coach_id}`);
+  revalidatePath("/c/profil");
+
+  return { data: undefined };
+}
