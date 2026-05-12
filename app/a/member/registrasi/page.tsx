@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -31,12 +32,41 @@ function ageFromDob(dob: string | null): string {
   return `${Math.floor(diff / (365.25 * 24 * 3600 * 1000))} tahun`;
 }
 
+function RegistrasiSkeleton() {
+  return (
+    <div className="p-4 md:p-6 space-y-4 animate-pulse">
+      <div className="h-7 w-48 bg-muted rounded" />
+      <div className="space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-lg border overflow-hidden">
+            <div className="h-16 bg-muted border-b" />
+            <div className="p-4 space-y-3">
+              <div className="h-5 w-2/3 bg-muted rounded" />
+              <div className="h-5 w-1/2 bg-muted rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function RegistrasiPage() {
   const supabase = createClient(await cookies());
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  return (
+    <Suspense fallback={<RegistrasiSkeleton />}>
+      <RegistrasiContent />
+    </Suspense>
+  );
+}
+
+async function RegistrasiContent() {
+  const supabase = createClient(await cookies());
 
   const { data: rawMembers, error } = await supabase
     .from("members")

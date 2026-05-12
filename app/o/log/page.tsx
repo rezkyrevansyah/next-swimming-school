@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createAdminClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import {
@@ -44,7 +45,15 @@ interface PageProps {
   }>;
 }
 
-export default async function OwnerLogPage({ searchParams }: PageProps) {
+export default function OwnerLogPage({ searchParams }: PageProps) {
+  return (
+    <Suspense>
+      <LogContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function LogContent({ searchParams }: PageProps) {
   const db = createAdminClient();
 
   const params = await searchParams;

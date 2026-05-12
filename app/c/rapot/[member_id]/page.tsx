@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
@@ -8,13 +9,21 @@ interface PageProps {
   searchParams: Promise<{ class_id?: string; semester_id?: string; coach_id?: string }>;
 }
 
-export default async function ReportCardPage({ params, searchParams }: PageProps) {
-  const supabase = createClient(await cookies());
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+function SimpleSkeleton() {
+  return (
+    <div className="p-4 space-y-3 animate-pulse">
+      <div className="h-7 w-40 bg-muted rounded" />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
 
+async function PageContent({
+  params,
+  searchParams,
+}: PageProps) {
   const { member_id } = await params;
   const sp = await searchParams;
   const class_id = sp.class_id;
@@ -22,6 +31,10 @@ export default async function ReportCardPage({ params, searchParams }: PageProps
   const coach_id = sp.coach_id;
 
   if (!class_id || !semester_id || !coach_id) notFound();
+
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   // Fetch all data in parallel
   const [memberRes, classRes, semesterRes, attendanceRes, existingReportRes] = await Promise.all([
@@ -79,7 +92,7 @@ export default async function ReportCardPage({ params, searchParams }: PageProps
   const canEdit = !isPastDeadline && !isPublished;
 
   return (
-    <div className="p-4 space-y-4 max-w-lg mx-auto pb-24">
+    <>
       <div className="pt-2">
         <p className="text-xs text-muted-foreground">{semester.name}</p>
         <h1 className="text-xl font-semibold mt-0.5">{profile?.full_name ?? member.member_id_code}</h1>
@@ -119,6 +132,16 @@ export default async function ReportCardPage({ params, searchParams }: PageProps
         canEdit={canEdit}
         coachAuthId={coach_id}
       />
+    </>
+  );
+}
+
+export default function ReportCardPage({ params, searchParams }: PageProps) {
+  return (
+    <div className="p-4 space-y-4 max-w-lg mx-auto pb-24">
+      <Suspense fallback={<SimpleSkeleton />}>
+        <PageContent params={params} searchParams={searchParams} />
+      </Suspense>
     </div>
   );
 }

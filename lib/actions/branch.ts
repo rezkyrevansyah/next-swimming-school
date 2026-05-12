@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { createBranchSchema, updateBranchSchema } from "@/lib/schemas/branch";
@@ -68,6 +68,7 @@ export async function createBranch(
   if (error) return { error: `Gagal membuat cabang: ${error.message}` };
 
   revalidatePath("/o/cabang");
+  revalidateTag("branches", "hours");
   return { data: branch };
 }
 
@@ -107,6 +108,8 @@ export async function updateBranch(
   revalidatePath(`/a/cabang/${id}`);
   revalidatePath("/o/cabang");
   revalidatePath(`/o/cabang/${id}`);
+  revalidateTag("branches", "hours");
+  revalidateTag(`branch-${id}`, "hours");
   return { data: updated };
 }
 

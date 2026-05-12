@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
@@ -17,7 +18,18 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function CoachKelasDetailPage({ params }: PageProps) {
+function SimpleSkeleton() {
+  return (
+    <div className="p-4 space-y-3 animate-pulse">
+      <div className="h-7 w-40 bg-muted rounded" />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+async function PageContent({ params }: PageProps) {
   const { id } = await params;
   const supabase = createClient(await cookies());
   const {
@@ -88,9 +100,8 @@ export default async function CoachKelasDetailPage({ params }: PageProps) {
     attendanceMap[r.member_id].push(r.status);
   });
 
-
   return (
-    <div className="p-4 space-y-4 max-w-lg mx-auto pb-24">
+    <>
       {/* Header */}
       <div className="pt-2">
         <Link
@@ -185,6 +196,16 @@ export default async function CoachKelasDetailPage({ params }: PageProps) {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+export default function CoachKelasDetailPage({ params }: PageProps) {
+  return (
+    <div className="p-4 space-y-4 max-w-lg mx-auto pb-24">
+      <Suspense fallback={<SimpleSkeleton />}>
+        <PageContent params={params} />
+      </Suspense>
     </div>
   );
 }

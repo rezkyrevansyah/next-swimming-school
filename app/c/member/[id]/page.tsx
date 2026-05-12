@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -26,7 +27,18 @@ const ATTENDANCE_VARIANT: Record<string, "default" | "secondary" | "outline" | "
   absent: "destructive",
 };
 
-export default async function CoachMemberDetailPage({ params }: PageProps) {
+function SimpleSkeleton() {
+  return (
+    <div className="p-4 space-y-3 animate-pulse">
+      <div className="h-7 w-40 bg-muted rounded" />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+async function PageContent({ params }: PageProps) {
   const { id } = await params;
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
@@ -219,5 +231,13 @@ export default async function CoachMemberDetailPage({ params }: PageProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CoachMemberDetailPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={<SimpleSkeleton />}>
+      <PageContent params={params} />
+    </Suspense>
   );
 }

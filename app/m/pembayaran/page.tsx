@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -37,7 +38,15 @@ const STATUS_ICON: Record<string, React.ElementType> = {
   paid: CheckCircle2,
 };
 
-export default async function MemberPembayaranPage() {
+export default function MemberPembayaranPage() {
+  return (
+    <Suspense>
+      <PembayaranContent />
+    </Suspense>
+  );
+}
+
+async function PembayaranContent() {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

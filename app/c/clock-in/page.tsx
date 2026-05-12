@@ -1,9 +1,21 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ClockInClient } from "./clock-in-client";
 
-export default async function ClockInPage() {
+function SimpleSkeleton() {
+  return (
+    <div className="p-4 space-y-3 animate-pulse">
+      <div className="h-7 w-40 bg-muted rounded" />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+async function PageContent() {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -52,5 +64,13 @@ export default async function ClockInPage() {
         distanceM: existing.clock_in_distance_m ? Number(existing.clock_in_distance_m) : null,
       } : null}
     />
+  );
+}
+
+export default function ClockInPage() {
+  return (
+    <Suspense fallback={<SimpleSkeleton />}>
+      <PageContent />
+    </Suspense>
   );
 }

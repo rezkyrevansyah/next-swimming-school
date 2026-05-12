@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -16,7 +17,25 @@ interface PageProps {
   searchParams: Promise<{ q?: string; page?: string; deleted?: string; limit?: string }>;
 }
 
-export default async function ClassListPage({ searchParams }: PageProps) {
+function PageSkeleton() {
+  return (
+    <div className="p-4 md:p-6 space-y-4 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-7 w-32 bg-muted rounded" />
+        <div className="h-9 w-28 bg-muted rounded" />
+      </div>
+      <div className="h-10 bg-muted rounded" />
+      <div className="space-y-2">
+        <div className="h-10 bg-muted rounded" />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="h-14 bg-muted rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function PageContent({ searchParams }: PageProps) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -206,6 +225,16 @@ export default async function ClassListPage({ searchParams }: PageProps) {
       </div>
 
       <PaginationControls page={page} totalPages={totalPages} pageSize={pageSize} buildUrl={buildUrl} />
+    </div>
+  );
+}
+
+export default function ClassListPage({ searchParams }: PageProps) {
+  return (
+    <div>
+      <Suspense fallback={<PageSkeleton />}>
+        <PageContent searchParams={searchParams} />
+      </Suspense>
     </div>
   );
 }

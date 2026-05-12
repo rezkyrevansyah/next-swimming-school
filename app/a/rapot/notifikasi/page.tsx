@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -20,7 +21,26 @@ export default async function RapotNotifikasiPage({ searchParams }: PageProps) {
   if (!user) redirect("/login");
 
   const params = await searchParams;
-  const semesterFilter = params.semester_id ?? "";
+
+  return (
+    <div className="p-4 md:p-6 space-y-4 max-w-2xl">
+      <Suspense fallback={
+        <div className="p-6 space-y-4 animate-pulse">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+          <div className="space-y-2">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-12 bg-muted rounded" />)}
+          </div>
+        </div>
+      }>
+        <PageContent semesterFilter={params.semester_id ?? ""} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function PageContent({ semesterFilter }: { semesterFilter: string }) {
+  const supabase = createClient(await cookies());
 
   // Fetch semesters for filter
   const { data: semesters } = await supabase
@@ -48,7 +68,7 @@ export default async function RapotNotifikasiPage({ searchParams }: PageProps) {
   const { data: reports } = await query;
 
   return (
-    <div className="p-4 md:p-6 space-y-4 max-w-2xl">
+    <>
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link
@@ -181,6 +201,6 @@ export default async function RapotNotifikasiPage({ searchParams }: PageProps) {
           })}
         </div>
       )}
-    </div>
+    </>
   );
 }

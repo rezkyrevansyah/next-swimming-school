@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
@@ -38,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ProgramDetailPage({ params }: PageProps) {
+async function ProgramDetailContent({ params }: PageProps) {
   const { slug } = await params;
   const supabase = createClient(await cookies());
 
@@ -77,7 +78,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
     : "Hubungi kami";
 
   return (
-    <div className="min-h-screen">
+    <>
       {/* Header */}
       <div className="relative py-14 px-5 bg-gradient-to-b from-sky-50 to-white overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" aria-hidden>
@@ -192,6 +193,21 @@ export default async function ProgramDetailPage({ params }: PageProps) {
           </Link>
         </div>
       </div>
+    </>
+  );
+}
+
+export default function ProgramDetailPage({ params }: PageProps) {
+  return (
+    <div className="min-h-screen">
+      <Suspense fallback={
+        <div className="p-8 space-y-4 animate-pulse max-w-2xl mx-auto">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-64 bg-muted rounded-xl" />
+        </div>
+      }>
+        <ProgramDetailContent params={params} />
+      </Suspense>
     </div>
   );
 }

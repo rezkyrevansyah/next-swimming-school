@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -46,12 +47,47 @@ interface PageProps {
   }>;
 }
 
-export default async function LogPage({ searchParams }: PageProps) {
+function LogSkeleton() {
+  return (
+    <div className="p-6 space-y-4 animate-pulse">
+      <div className="h-7 w-36 bg-muted rounded" />
+      <div className="h-10 bg-muted rounded" />
+      <div className="space-y-2">
+        <div className="h-10 bg-muted rounded" />
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="h-12 bg-muted rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function LogPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<LogSkeleton />}>
+      <LogContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function LogContent({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    page?: string;
+    action?: string;
+    resource_type?: string;
+    date_from?: string;
+    date_to?: string;
+    limit?: string;
+  }>;
+}) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const params = await searchParams;
+
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
   const actionFilter = params.action ?? "";

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -15,7 +16,15 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
   present: "default", late: "secondary", permitted: "outline", sick: "outline", absent: "destructive",
 };
 
-export default async function MemberAbsensiPage({ searchParams }: PageProps) {
+export default function MemberAbsensiPage({ searchParams }: PageProps) {
+  return (
+    <Suspense>
+      <AbsensiContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function AbsensiContent({ searchParams }: PageProps) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

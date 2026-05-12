@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -16,7 +17,9 @@ export default function CabangBaruPage() {
         </div>
       </div>
 
-      <CreateBranchForm />
+      <Suspense>
+        <CreateBranchForm />
+      </Suspense>
     </div>
   );
 }

@@ -1,10 +1,24 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Building2, ChevronRight, MapPin } from "lucide-react";
 
-export default async function CabangPage() {
+function PageSkeleton() {
+  return (
+    <div className="p-6 space-y-4 max-w-3xl animate-pulse">
+      <div className="h-7 w-32 bg-muted rounded" />
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-24 bg-muted rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function PageContent() {
   const supabase = createClient(await cookies());
   const { data: roleData } = await supabase.rpc("user_role");
   if (roleData !== "owner") redirect("/a/dashboard");
@@ -74,6 +88,16 @@ export default async function CabangPage() {
       <div className="rounded-xl border border-dashed px-4 py-3 text-center text-xs text-muted-foreground">
         Penambahan cabang baru akan segera tersedia.
       </div>
+    </div>
+  );
+}
+
+export default function CabangPage() {
+  return (
+    <div>
+      <Suspense fallback={<PageSkeleton />}>
+        <PageContent />
+      </Suspense>
     </div>
   );
 }

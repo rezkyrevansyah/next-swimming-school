@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -6,7 +7,15 @@ import { Badge } from "@/components/ui/badge";
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 function formatTime(t: string) { return t.slice(0, 5); }
 
-export default async function MemberJadwalPage() {
+export default function MemberJadwalPage() {
+  return (
+    <Suspense>
+      <JadwalContent />
+    </Suspense>
+  );
+}
+
+async function JadwalContent() {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

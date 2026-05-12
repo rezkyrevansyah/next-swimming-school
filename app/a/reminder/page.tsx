@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -7,6 +8,26 @@ export default async function AdminReminderPage() {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  return (
+    <div className="p-4 md:p-6 space-y-4 max-w-3xl">
+      <Suspense fallback={
+        <div className="p-6 space-y-4 animate-pulse">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+          <div className="space-y-2">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-12 bg-muted rounded" />)}
+          </div>
+        </div>
+      }>
+        <PageContent />
+      </Suspense>
+    </div>
+  );
+}
+
+async function PageContent() {
+  const supabase = createClient(await cookies());
 
   // Fetch active members with phone + class info
   const { data: members } = await supabase
@@ -42,7 +63,7 @@ export default async function AdminReminderPage() {
   });
 
   return (
-    <div className="p-4 md:p-6 space-y-4 max-w-3xl">
+    <>
       <div>
         <h1 className="text-xl md:text-2xl font-semibold">Reminder WhatsApp</h1>
         <p className="text-muted-foreground text-sm mt-0.5">
@@ -51,6 +72,6 @@ export default async function AdminReminderPage() {
       </div>
 
       <ReminderClient members={enriched} waNumber={waNumber} />
-    </div>
+    </>
   );
 }

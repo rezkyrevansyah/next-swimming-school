@@ -1,8 +1,9 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Clock, FileText, MessageCircle } from "lucide-react";
+import { CheckCircle2, Clock, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,10 +24,38 @@ export default async function AdminRapotPage({ searchParams }: PageProps) {
   if (!user) redirect("/login");
 
   const params = await searchParams;
-  const page = Math.max(1, parseInt(params.page ?? "1", 10));
-  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
-  const semesterFilter = params.semester_id ?? "";
-  const statusFilter = params.status ?? "";
+
+  return (
+    <div className="p-4 md:p-6 space-y-4">
+      <Suspense fallback={
+        <div className="p-6 space-y-4 animate-pulse">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+          <div className="space-y-2">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-12 bg-muted rounded" />)}
+          </div>
+        </div>
+      }>
+        <PageContent searchParams={params} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function PageContent({ searchParams }: {
+  searchParams: {
+    page?: string;
+    semester_id?: string;
+    status?: string;
+    limit?: string;
+  };
+}) {
+  const supabase = createClient(await cookies());
+
+  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(searchParams.limit ?? String(DEFAULT_PAGE_SIZE), 10));
+  const semesterFilter = searchParams.semester_id ?? "";
+  const statusFilter = searchParams.status ?? "";
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
@@ -72,7 +101,7 @@ export default async function AdminRapotPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-semibold">Rapot</h1>
@@ -183,6 +212,6 @@ export default async function AdminRapotPage({ searchParams }: PageProps) {
       )}
 
       <PaginationControls page={page} totalPages={totalPages} pageSize={pageSize} buildUrl={buildUrl} />
-    </div>
+    </>
   );
 }

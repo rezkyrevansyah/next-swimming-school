@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { LogoCircle } from "@/components/shared/logo";
 import { ForgotPasswordForm } from "./forgot-password-form";
 
@@ -10,7 +11,15 @@ interface PageProps {
   searchParams: Promise<{ error?: string }>;
 }
 
-export default async function ForgotPasswordPage({ searchParams }: PageProps) {
+export default function ForgotPasswordPage({ searchParams }: PageProps) {
+  return (
+    <Suspense>
+      <ForgotPasswordContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function ForgotPasswordContent({ searchParams }: PageProps) {
   const { error } = await searchParams;
 
   return (

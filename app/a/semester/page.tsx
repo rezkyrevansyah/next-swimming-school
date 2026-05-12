@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -21,12 +22,43 @@ interface PageProps {
   searchParams: Promise<{ page?: string; limit?: string }>;
 }
 
+function SemesterSkeleton() {
+  return (
+    <div className="p-6 space-y-4 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-7 w-32 bg-muted rounded" />
+        <div className="h-9 w-28 bg-muted rounded" />
+      </div>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-20 bg-muted rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function SemesterPage({ searchParams }: PageProps) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const params = await searchParams;
+
+  return (
+    <Suspense fallback={<SemesterSkeleton />}>
+      <SemesterContent params={params} />
+    </Suspense>
+  );
+}
+
+async function SemesterContent({
+  params,
+}: {
+  params: { page?: string; limit?: string };
+}) {
+  const supabase = createClient(await cookies());
+
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
   const from = (page - 1) * pageSize;

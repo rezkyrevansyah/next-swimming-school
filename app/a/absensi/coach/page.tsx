@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -27,12 +28,52 @@ interface PageProps {
   }>;
 }
 
+function AbsensiCoachSkeleton() {
+  return (
+    <div className="p-6 space-y-4 animate-pulse">
+      <div className="h-7 w-40 bg-muted rounded" />
+      <div className="flex gap-2">
+        <div className="h-10 w-40 bg-muted rounded" />
+        <div className="h-10 w-40 bg-muted rounded" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-10 bg-muted rounded" />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="h-14 bg-muted rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function AbsensiCoachPage({ searchParams }: PageProps) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const params = await searchParams;
+
+  return (
+    <Suspense fallback={<AbsensiCoachSkeleton />}>
+      <AbsensiCoachContent params={params} />
+    </Suspense>
+  );
+}
+
+async function AbsensiCoachContent({
+  params,
+}: {
+  params: {
+    page?: string;
+    coach_id?: string;
+    date_from?: string;
+    date_to?: string;
+    suspicious?: string;
+    limit?: string;
+  };
+}) {
+  const supabase = createClient(await cookies());
+
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
   const coachFilter = params.coach_id ?? "";

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -10,16 +11,13 @@ import { cn } from "@/lib/utils";
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
 function formatTime(time: string) {
-  // time is "HH:MM:SS" from DB
   return time.slice(0, 5);
 }
 
-export default async function CoachDashboardPage() {
+// ── Dynamic: coach-specific data ───────────────────────────────────────────────
+async function CoachDashboardContent({ userId }: { userId: string }) {
   const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
-  // Get coach record + profile + primary branch
   const { data: coach } = await supabase
     .from("coaches")
     .select(`
@@ -27,7 +25,7 @@ export default async function CoachDashboardPage() {
       coach_profiles(full_name, nickname),
       coach_branches!inner(branch_id, is_primary, branches(id, name, location_lat, location_lng))
     `)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("coach_branches.is_primary", true)
     .single();
 
@@ -53,23 +51,32 @@ export default async function CoachDashboardPage() {
     : branchEntry?.branches;
 
   const branchId = branch?.id;
-  const todayDow = new Date().getDay(); // 0 = Sunday
-  const todayDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const todayDow = new Date().getDay();
+  const todayDate = new Date().toISOString().slice(0, 10);
 
-  // Get today's classes for this coach at primary branch
-  const { data: todayClasses } = await supabase
-    .from("class_coaches")
-    .select(`
-      class_id,
-      classes!inner(
-        id, name, slug, capacity, status, branch_id,
-        class_schedules(id, day_of_week, start_time, end_time)
-      )
-    `)
-    .eq("coach_id", coach.id);
+  const [{ data: allCoachClasses }, { data: clockRecord }] = await Promise.all([
+    supabase
+      .from("class_coaches")
+      .select(`
+        class_id,
+        classes!inner(
+          id, name, slug, capacity, status, branch_id,
+          class_schedules(id, day_of_week, start_time, end_time)
+        )
+      `)
+      .eq("coach_id", coach.id),
+
+    supabase
+      .from("coach_clock_records")
+      .select("id, clock_in_at, clock_in_distance_m")
+      .eq("coach_id", coach.id)
+      .eq("branch_id", branchId ?? "")
+      .eq("clock_in_date", todayDate)
+      .maybeSingle(),
+  ]);
 
   // Filter: classes at primary branch, active, with schedule today
-  const todaySchedules = (todayClasses ?? [])
+  const todaySchedules = (allCoachClasses ?? [])
     .filter((cc) => {
       const cls = Array.isArray(cc.classes) ? cc.classes[0] : cc.classes;
       return cls?.branch_id === branchId && cls?.status === "active";
@@ -88,15 +95,6 @@ export default async function CoachDashboardPage() {
     })
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-  // Check if already clocked in today at primary branch
-  const { data: clockRecord } = await supabase
-    .from("coach_clock_records")
-    .select("id, clock_in_at, clock_in_distance_m")
-    .eq("coach_id", coach.id)
-    .eq("branch_id", branchId ?? "")
-    .eq("clock_in_date", todayDate)
-    .maybeSingle();
-
   const hasClasses = todaySchedules.length > 0;
   const hasClockedIn = !!clockRecord;
 
@@ -111,7 +109,7 @@ export default async function CoachDashboardPage() {
   const name = profile?.nickname || profile?.full_name?.split(" ")[0] || "Pelatih";
 
   return (
-    <div className="p-4 space-y-4 max-w-lg mx-auto">
+    <>
       {/* Greeting */}
       <div className="pt-2">
         <p className="text-muted-foreground text-sm">{greeting()},</p>
@@ -222,6 +220,40 @@ export default async function CoachDashboardPage() {
           </Link>
         </div>
       </div>
+    </>
+  );
+}
+
+// ── Skeleton ───────────────────────────────────────────────────────────────────
+function DashboardSkeleton() {
+  return (
+    <>
+      <div className="pt-2 space-y-1 animate-pulse">
+        <div className="h-4 w-28 bg-muted rounded" />
+        <div className="h-7 w-40 bg-muted rounded" />
+        <div className="h-3 w-52 bg-muted rounded" />
+      </div>
+      <div className="h-20 bg-muted rounded-xl animate-pulse" />
+      <div className="space-y-2 animate-pulse">
+        <div className="h-4 w-24 bg-muted rounded" />
+        <div className="h-16 bg-muted rounded-xl" />
+        <div className="h-16 bg-muted rounded-xl" />
+      </div>
+    </>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+export default async function CoachDashboardPage() {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  return (
+    <div className="p-4 space-y-4 max-w-lg mx-auto">
+      <Suspense fallback={<DashboardSkeleton />}>
+        <CoachDashboardContent userId={user.id} />
+      </Suspense>
     </div>
   );
 }

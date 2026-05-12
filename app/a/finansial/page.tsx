@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -44,6 +45,43 @@ const STATUS_VARIANT: Record<
 };
 
 // ============================================================================
+// StatCard
+// ============================================================================
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  color,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sub: string;
+  color: "blue" | "green" | "red" | "amber";
+}) {
+  const colorMap = {
+    blue: "text-blue-600 bg-blue-50",
+    green: "text-green-600 bg-green-50",
+    red: "text-destructive bg-destructive/10",
+    amber: "text-amber-600 bg-amber-50",
+  };
+
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-2">
+      <div className={cn("inline-flex p-2 rounded-lg", colorMap[color])}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div>
+        <p className="text-xl font-bold leading-tight">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // Page
 // ============================================================================
 interface PageProps {
@@ -63,8 +101,37 @@ export default async function FinansialPage({ searchParams }: PageProps) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Branch context (same pattern as dashboard)
   const activeBranchId = jar.get("active_branch_id")?.value ?? null;
+  const params = await searchParams;
+
+  return (
+    <div className="p-4 md:p-6 space-y-6 max-w-5xl">
+      <Suspense fallback={
+        <div className="p-6 space-y-4 animate-pulse">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-10 bg-muted rounded" />
+          <div className="space-y-2">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-12 bg-muted rounded" />)}
+          </div>
+        </div>
+      }>
+        <PageContent activeBranchId={activeBranchId} searchParams={params} userId={user.id} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function PageContent({
+  activeBranchId,
+  searchParams,
+  userId,
+}: {
+  activeBranchId: string | null;
+  searchParams: { page?: string; status?: string; period?: string; limit?: string };
+  userId: string;
+}) {
+  const supabase = createClient(await cookies());
+
   let branchId = activeBranchId;
   if (!branchId) {
     const { data } = await supabase.rpc("user_branch_id");
@@ -72,11 +139,10 @@ export default async function FinansialPage({ searchParams }: PageProps) {
   }
   if (!branchId) redirect("/login");
 
-  const params = await searchParams;
-  const page = Math.max(1, parseInt(params.page ?? "1", 10));
-  const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));
-  const statusFilter = params.status ?? "";
-  const periodFilter = params.period ?? "";
+  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10));
+  const pageSize = Math.max(1, parseInt(searchParams.limit ?? String(DEFAULT_PAGE_SIZE), 10));
+  const statusFilter = searchParams.status ?? "";
+  const periodFilter = searchParams.period ?? "";
   const offset = (page - 1) * pageSize;
 
   // ── Stats (current month) ──────────────────────────────────────────────
@@ -185,7 +251,7 @@ export default async function FinansialPage({ searchParams }: PageProps) {
   ];
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-5xl">
+    <>
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
@@ -255,10 +321,10 @@ export default async function FinansialPage({ searchParams }: PageProps) {
           { label: "Sebagian", value: "partial" },
           { label: "Lunas", value: "paid" },
         ].map(({ label, value }) => {
-          const params = new URLSearchParams();
-          if (value) params.set("status", value);
-          if (periodFilter) params.set("period", periodFilter);
-          const href = `/a/finansial${params.size > 0 ? `?${params}` : ""}`;
+          const p = new URLSearchParams();
+          if (value) p.set("status", value);
+          if (periodFilter) p.set("period", periodFilter);
+          const href = `/a/finansial${p.size > 0 ? `?${p}` : ""}`;
           const isActive = statusFilter === value;
           return (
             <Link
@@ -280,10 +346,10 @@ export default async function FinansialPage({ searchParams }: PageProps) {
         {uniquePeriods.length > 0 && (
           <div className="flex gap-1 flex-wrap ml-2">
             {uniquePeriods.slice(0, 6).map((p) => {
-              const params = new URLSearchParams();
-              if (statusFilter) params.set("status", statusFilter);
-              params.set("period", p);
-              const href = `/a/finansial?${params}`;
+              const sp = new URLSearchParams();
+              if (statusFilter) sp.set("status", statusFilter);
+              sp.set("period", p);
+              const href = `/a/finansial?${sp}`;
               const isActive = periodFilter === p;
               return (
                 <Link
@@ -379,43 +445,6 @@ export default async function FinansialPage({ searchParams }: PageProps) {
       )}
 
       <PaginationControls page={page} totalPages={totalPages} pageSize={pageSize} buildUrl={buildUrl} />
-    </div>
-  );
-}
-
-// ============================================================================
-// StatCard
-// ============================================================================
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  color,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  sub: string;
-  color: "blue" | "green" | "red" | "amber";
-}) {
-  const colorMap = {
-    blue: "text-blue-600 bg-blue-50",
-    green: "text-green-600 bg-green-50",
-    red: "text-destructive bg-destructive/10",
-    amber: "text-amber-600 bg-amber-50",
-  };
-
-  return (
-    <div className="rounded-xl border bg-card p-4 space-y-2">
-      <div className={cn("inline-flex p-2 rounded-lg", colorMap[color])}>
-        <Icon className="h-4 w-4" />
-      </div>
-      <div>
-        <p className="text-xl font-bold leading-tight">{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>
-      </div>
-    </div>
+    </>
   );
 }

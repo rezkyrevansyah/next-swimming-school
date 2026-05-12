@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createAdminClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import { Building2, MapPin, ArrowRight, Plus } from "lucide-react";
@@ -5,7 +6,15 @@ import { setActiveBranch } from "@/lib/actions/branch";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default async function OwnerCabangPage() {
+export default function OwnerCabangPage() {
+  return (
+    <Suspense>
+      <CabangContent />
+    </Suspense>
+  );
+}
+
+async function CabangContent() {
   const db = createAdminClient();
 
   const { data: branches } = await db

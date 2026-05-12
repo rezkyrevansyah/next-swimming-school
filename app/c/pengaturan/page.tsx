@@ -1,9 +1,18 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ChangePasswordForm } from "@/components/shared/change-password-form";
 
-export default async function CoachPengaturanPage() {
+export default function CoachPengaturanPage() {
+  return (
+    <Suspense>
+      <PengaturanContent />
+    </Suspense>
+  );
+}
+
+async function PengaturanContent() {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

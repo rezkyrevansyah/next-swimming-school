@@ -1,85 +1,37 @@
+import { Suspense } from "react";
 import { createAdminClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { Building2, Users, UserCheck, BookOpen, ArrowRight, TrendingUp } from "lucide-react";
+import { Building2, Users, UserCheck, BookOpen, ArrowRight } from "lucide-react";
 import { setActiveBranch } from "@/lib/actions/branch";
+import { getAllBranches } from "@/lib/data/branch";
+import { getOwnerBranchStats } from "@/lib/data/stats";
 
-interface BranchStats {
-  id: string;
-  name: string;
-  status: string;
-  is_default: boolean;
-  memberCount: number;
-  coachCount: number;
-  classCount: number;
-  activeRate: number; // % member aktif dari total
-}
+// ── Cached: per-branch stats ───────────────────────────────────────────────────
+async function OwnerDashboardContent() {
+  const branches = await getAllBranches();
 
-export default async function OwnerDashboardPage() {
-  const db = createAdminClient();
-
-  // Fetch all branches
-  const { data: branches } = await db
-    .from("branches")
-    .select("id, name, status, is_default")
-    .is("deleted_at", null)
-    .order("is_default", { ascending: false });
-
-  if (!branches || branches.length === 0) {
+  if (branches.length === 0) {
     return (
-      <div className="p-6 space-y-4 max-w-4xl">
-        <h1 className="text-2xl font-semibold">Helicopter View</h1>
-        <div className="rounded-xl border border-dashed p-16 text-center text-muted-foreground flex flex-col items-center gap-3">
-          <Building2 className="h-10 w-10 opacity-30" />
-          <p>Belum ada cabang. Buat cabang pertama di menu Cabang.</p>
-          <Link href="/o/cabang" className="text-sm text-primary hover:underline">
-            Kelola Cabang →
-          </Link>
-        </div>
+      <div className="rounded-xl border border-dashed p-16 text-center text-muted-foreground flex flex-col items-center gap-3">
+        <Building2 className="h-10 w-10 opacity-30" />
+        <p>Belum ada cabang. Buat cabang pertama di menu Cabang.</p>
+        <Link href="/o/cabang" className="text-sm text-primary hover:underline">
+          Kelola Cabang →
+        </Link>
       </div>
     );
   }
 
-  // Fetch aggregate stats per branch in parallel
-  const statsPromises = branches.map(async (b): Promise<BranchStats> => {
-    const [
-      { count: memberCount },
-      { count: activeCount },
-      { count: coachCount },
-      { count: classCount },
-    ] = await Promise.all([
-      db.from("members").select("*", { count: "exact", head: true }).eq("branch_id", b.id).is("deleted_at", null),
-      db.from("members").select("*", { count: "exact", head: true }).eq("branch_id", b.id).eq("status", "active").is("deleted_at", null),
-      db.from("coach_branches").select("*", { count: "exact", head: true }).eq("branch_id", b.id),
-      db.from("classes").select("*", { count: "exact", head: true }).eq("branch_id", b.id).eq("status", "active").is("deleted_at", null),
-    ]);
-    const total = memberCount ?? 0;
-    const active = activeCount ?? 0;
-    return {
-      ...b,
-      memberCount: total,
-      coachCount: coachCount ?? 0,
-      classCount: classCount ?? 0,
-      activeRate: total > 0 ? Math.round((active / total) * 100) : 0,
-    };
-  });
+  const branchStats = await Promise.all(
+    branches.map((b) => getOwnerBranchStats(b.id, b.name, b.status, b.is_default))
+  );
 
-  const branchStats = await Promise.all(statsPromises);
-
-  // Grand totals
   const totalMembers = branchStats.reduce((s, b) => s + b.memberCount, 0);
   const totalCoaches = branchStats.reduce((s, b) => s + b.coachCount, 0);
   const totalClasses = branchStats.reduce((s, b) => s + b.classCount, 0);
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-5xl">
-      <div>
-        <h1 className="text-xl md:text-2xl font-semibold">Helicopter View</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Ringkasan keseluruhan {branches.length} cabang
-        </p>
-      </div>
-
+    <>
       {/* Grand total cards */}
       <div className="grid grid-cols-3 gap-3">
         {[
@@ -149,6 +101,43 @@ export default async function OwnerDashboardPage() {
           ))}
         </div>
       </div>
+    </>
+  );
+}
+
+// ── Skeleton ───────────────────────────────────────────────────────────────────
+function DashboardSkeleton() {
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-3 animate-pulse">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-20 bg-muted rounded-xl" />
+        ))}
+      </div>
+      <div className="space-y-3 animate-pulse">
+        <div className="h-4 w-20 bg-muted rounded" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-28 bg-muted rounded-xl" />
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+export default async function OwnerDashboardPage() {
+  return (
+    <div className="p-4 md:p-6 space-y-6 max-w-5xl">
+      <div>
+        <h1 className="text-xl md:text-2xl font-semibold">Helicopter View</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
+          Ringkasan keseluruhan semua cabang
+        </p>
+      </div>
+
+      <Suspense fallback={<DashboardSkeleton />}>
+        <OwnerDashboardContent />
+      </Suspense>
     </div>
   );
 }

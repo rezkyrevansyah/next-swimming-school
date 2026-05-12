@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { Waves } from "lucide-react";
@@ -6,7 +7,7 @@ import { RegisterForm } from "./register-form";
 
 export const metadata: Metadata = { title: "Daftar Member" };
 
-export default async function DaftarMemberPage() {
+async function RegisterFormContent() {
   const supabase = createClient(await cookies());
 
   const { data: branches } = await supabase
@@ -16,6 +17,18 @@ export default async function DaftarMemberPage() {
     .is("deleted_at", null)
     .order("name");
 
+  if (!branches || branches.length === 0) {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center text-sm text-amber-700">
+        Tidak ada cabang aktif saat ini. Silakan hubungi kami langsung.
+      </div>
+    );
+  }
+
+  return <RegisterForm branches={branches} />;
+}
+
+export default function DaftarMemberPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -37,13 +50,9 @@ export default async function DaftarMemberPage() {
 
       {/* Form */}
       <div className="max-w-lg mx-auto px-5 pb-20 pt-2">
-        {(!branches || branches.length === 0) ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-10 text-center text-sm text-amber-700">
-            Tidak ada cabang aktif saat ini. Silakan hubungi kami langsung.
-          </div>
-        ) : (
-          <RegisterForm branches={branches} />
-        )}
+        <Suspense fallback={<div className="h-96 bg-muted rounded-2xl animate-pulse" />}>
+          <RegisterFormContent />
+        </Suspense>
       </div>
     </div>
   );

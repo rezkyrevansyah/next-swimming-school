@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -5,11 +6,27 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ManualAttendanceForm } from "./manual-attendance-form";
 
-export default async function AbsensiManualPage() {
+function PageSkeleton() {
+  return (
+    <div className="p-4 md:p-6 space-y-6 max-w-xl animate-pulse">
+      <div className="h-4 w-48 bg-muted rounded" />
+      <div className="h-7 w-56 bg-muted rounded" />
+      <div className="rounded-lg border bg-card p-4 md:p-6 space-y-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="space-y-1.5">
+            <div className="h-4 w-24 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+          </div>
+        ))}
+        <div className="h-10 w-full bg-muted rounded mt-2" />
+      </div>
+    </div>
+  );
+}
+
+async function PageContent() {
   const supabase = createClient(await cookies());
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   // Fetch active members + classes for dropdowns
@@ -59,6 +76,16 @@ export default async function AbsensiManualPage() {
           classes={(classes ?? []).map((c) => ({ id: c.id, name: c.name }))}
         />
       </div>
+    </div>
+  );
+}
+
+export default function AbsensiManualPage() {
+  return (
+    <div>
+      <Suspense fallback={<PageSkeleton />}>
+        <PageContent />
+      </Suspense>
     </div>
   );
 }

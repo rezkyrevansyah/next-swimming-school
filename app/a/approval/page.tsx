@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
@@ -20,7 +21,25 @@ const STATUS_TABS = [
   { value: "all", label: "Semua" },
 ];
 
-export default async function ApprovalPage({ searchParams }: PageProps) {
+function PageSkeleton() {
+  return (
+    <div className="p-4 md:p-6 space-y-5 max-w-3xl animate-pulse">
+      <div className="h-7 w-40 bg-muted rounded" />
+      <div className="flex gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-8 w-20 bg-muted rounded" />
+        ))}
+      </div>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-24 bg-muted rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function PageContent({ searchParams }: PageProps) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -134,6 +153,16 @@ export default async function ApprovalPage({ searchParams }: PageProps) {
         pageSize={pageSize}
         buildUrl={buildUrl}
       />
+    </div>
+  );
+}
+
+export default function ApprovalPage({ searchParams }: PageProps) {
+  return (
+    <div>
+      <Suspense fallback={<PageSkeleton />}>
+        <PageContent searchParams={searchParams} />
+      </Suspense>
     </div>
   );
 }

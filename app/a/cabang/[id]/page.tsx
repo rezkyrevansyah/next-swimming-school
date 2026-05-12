@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -11,7 +12,29 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function CabangDetailPage({ params }: PageProps) {
+function PageSkeleton() {
+  return (
+    <div className="p-6 max-w-2xl space-y-6 animate-pulse">
+      <div className="flex items-start gap-3">
+        <div className="h-8 w-8 bg-muted rounded" />
+        <div className="space-y-1">
+          <div className="h-6 w-48 bg-muted rounded" />
+          <div className="h-4 w-32 bg-muted rounded" />
+        </div>
+      </div>
+      <div className="space-y-4">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="space-y-1.5">
+            <div className="h-4 w-24 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function PageContent({ params }: PageProps) {
   const { id } = await params;
   const supabase = createClient(await cookies());
 
@@ -50,6 +73,16 @@ export default async function CabangDetailPage({ params }: PageProps) {
       </div>
 
       <BranchEditForm branch={branch} />
+    </div>
+  );
+}
+
+export default function CabangDetailPage({ params }: PageProps) {
+  return (
+    <div>
+      <Suspense fallback={<PageSkeleton />}>
+        <PageContent params={params} />
+      </Suspense>
     </div>
   );
 }

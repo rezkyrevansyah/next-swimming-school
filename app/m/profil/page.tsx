@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -22,7 +23,18 @@ function formatDate(dateStr: string | null) {
   });
 }
 
-export default async function MemberProfilPage() {
+function SimpleSkeleton() {
+  return (
+    <div className="p-4 space-y-3 animate-pulse">
+      <div className="h-7 w-40 bg-muted rounded" />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+async function PageContent() {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -68,7 +80,7 @@ export default async function MemberProfilPage() {
   ];
 
   return (
-    <div className="p-4 space-y-4 max-w-lg mx-auto">
+    <>
       <div className="pt-2">
         <h1 className="text-xl font-semibold">Profil Saya</h1>
       </div>
@@ -142,6 +154,16 @@ export default async function MemberProfilPage() {
           Selesaikan permintaan yang ada sebelum mengajukan perubahan baru.
         </p>
       )}
+    </>
+  );
+}
+
+export default function MemberProfilPage() {
+  return (
+    <div className="p-4 space-y-4 max-w-lg mx-auto">
+      <Suspense fallback={<SimpleSkeleton />}>
+        <PageContent />
+      </Suspense>
     </div>
   );
 }

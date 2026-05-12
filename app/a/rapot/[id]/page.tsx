@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -34,6 +35,23 @@ export default async function AdminRapotDetailPage({ params }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  return (
+    <div className="p-4 md:p-6 max-w-2xl space-y-6">
+      <Suspense fallback={
+        <div className="p-6 space-y-4 animate-pulse">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-64 bg-muted rounded-xl" />
+        </div>
+      }>
+        <PageContent id={id} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function PageContent({ id }: { id: string }) {
+  const supabase = createClient(await cookies());
+
   const { data: report, error } = await supabase
     .from("report_cards")
     .select(`
@@ -64,7 +82,7 @@ export default async function AdminRapotDetailPage({ params }: PageProps) {
   const skillScores = (report.skill_scores ?? {}) as Record<string, number>;
 
   return (
-    <div className="p-4 md:p-6 max-w-2xl space-y-6">
+    <>
       {/* Header */}
       <div className="flex items-start gap-3">
         <Link
@@ -219,6 +237,6 @@ export default async function AdminRapotDetailPage({ params }: PageProps) {
           <p>Dipublikasikan: {new Date(report.published_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
         )}
       </div>
-    </div>
+    </>
   );
 }

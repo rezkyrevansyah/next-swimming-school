@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -32,12 +33,43 @@ interface PageProps {
   searchParams: Promise<{ q?: string; page?: string; deleted?: string; limit?: string }>;
 }
 
-export default async function MemberListPage({ searchParams }: PageProps) {
+function MemberListSkeleton() {
+  return (
+    <div className="p-6 space-y-4 animate-pulse">
+      <div className="flex items-center justify-between">
+        <div className="h-7 w-32 bg-muted rounded" />
+        <div className="h-9 w-28 bg-muted rounded" />
+      </div>
+      <div className="h-10 bg-muted rounded" />
+      <div className="space-y-2">
+        <div className="h-10 bg-muted rounded" />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="h-14 bg-muted rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function MemberListPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<MemberListSkeleton />}>
+      <MemberListContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function MemberListContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; page?: string; deleted?: string; limit?: string }>;
+}) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const params = await searchParams;
+
   const q = params.q?.trim() ?? "";
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = Math.max(1, parseInt(params.limit ?? String(DEFAULT_PAGE_SIZE), 10));

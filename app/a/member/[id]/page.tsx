@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -29,7 +30,21 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function MemberDetailPage({ params }: PageProps) {
+function PageSkeleton() {
+  return (
+    <div className="p-6 max-w-3xl space-y-6 animate-pulse">
+      <div className="h-7 w-48 bg-muted rounded" />
+      <div className="h-10 bg-muted rounded" />
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 bg-muted rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function PageContent({ params }: PageProps) {
   const { id } = await params;
   const supabase = createClient(await cookies());
 
@@ -229,6 +244,16 @@ export default async function MemberDetailPage({ params }: PageProps) {
           />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+export default function MemberDetailPage({ params }: PageProps) {
+  return (
+    <div>
+      <Suspense fallback={<PageSkeleton />}>
+        <PageContent params={params} />
+      </Suspense>
     </div>
   );
 }

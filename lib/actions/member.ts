@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
 import { createMemberSchema, updateMemberSchema } from "@/lib/schemas/member";
 import type { ActionResult } from "@/lib/types/common";
@@ -139,6 +139,7 @@ export async function createMember(
   });
 
   revalidatePath("/a/member");
+  revalidateTag(`stats-admin-${branch_id}`, "minutes");
   return { data: member };
 }
 
@@ -379,6 +380,7 @@ export async function approveMember(
 
   revalidatePath("/a/member");
   revalidatePath("/a/member/registrasi");
+  revalidateTag(`stats-admin-${member.branch_id}`, "minutes");
   return { data: { tempPassword } };
 }
 
@@ -433,6 +435,7 @@ export async function rejectMember(memberId: string): Promise<ActionResult> {
 
   revalidatePath("/a/member");
   revalidatePath("/a/member/registrasi");
+  if (member?.branch_id) revalidateTag(`stats-admin-${member.branch_id}`, "minutes");
   return { data: undefined };
 }
 

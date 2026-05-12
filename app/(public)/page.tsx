@@ -278,7 +278,7 @@ export default function LandingPage() {
 
       {/* ── FOOTER ───────────────────────────────────────────────────── */}
       <footer className="border-t py-8 px-5 text-center text-xs text-gray-400">
-        <p>© {new Date().getFullYear()} Next Swimming School. Semua hak dilindungi.</p>
+        <p>© 2025 Next Swimming School. Semua hak dilindungi.</p>
         <div className="mt-2 flex justify-center gap-4">
           <Link href="/program" className="hover:text-gray-600 transition-colors">Program</Link>
           <Link href="/tentang" className="hover:text-gray-600 transition-colors">Tentang</Link>

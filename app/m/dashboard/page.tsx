@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -26,16 +27,20 @@ function greeting() {
   return "Selamat malam";
 }
 
-export default async function MemberDashboardPage() {
-  const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+function formatRupiah(amount: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency", currency: "IDR", minimumFractionDigits: 0,
+  }).format(amount);
+}
 
-  // Get member + profile
+// ── Dynamic: member-specific data ──────────────────────────────────────────────
+async function MemberDashboardContent({ userId }: { userId: string }) {
+  const supabase = createClient(await cookies());
+
   const { data: member } = await supabase
     .from("members")
     .select(`id, member_id_code, status, member_profiles(full_name, nickname, phone)`)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
   if (!member || member.status !== "active") redirect("/login");
@@ -48,34 +53,19 @@ export default async function MemberDashboardPage() {
   const todayDow = new Date().getDay();
   const todayDate = new Date().toISOString().slice(0, 10);
 
-  // Unpaid invoices for banner
-  const { data: unpaidInvoices } = await supabase
-    .from("monthly_invoices")
-    .select("id, period_month, total_amount, amount_paid, status")
-    .eq("member_id", member.id)
-    .in("status", ["unpaid", "partial"])
-    .order("period_month", { ascending: false });
-
-  const unpaidList = unpaidInvoices ?? [];
-  const totalOutstanding = unpaidList.reduce(
-    (s, i) => s + Math.max(0, (i.total_amount ?? 0) - (i.amount_paid ?? 0)),
-    0
-  );
-
-  function formatRupiah(amount: number) {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  }
-
-  // Get enrolled classes + schedules + coaches in parallel
   const [
+    { data: unpaidInvoices },
     { data: enrollments },
     { data: thisMonthAttendance },
     { data: recentAttendance },
   ] = await Promise.all([
+    supabase
+      .from("monthly_invoices")
+      .select("id, period_month, total_amount, amount_paid, status")
+      .eq("member_id", member.id)
+      .in("status", ["unpaid", "partial"])
+      .order("period_month", { ascending: false }),
+
     supabase
       .from("class_members")
       .select(`
@@ -89,7 +79,6 @@ export default async function MemberDashboardPage() {
       .eq("member_id", member.id)
       .eq("status", "enrolled"),
 
-    // This month's attendance stats
     supabase
       .from("attendance_records")
       .select("status")
@@ -97,7 +86,6 @@ export default async function MemberDashboardPage() {
       .gte("session_date", todayDate.slice(0, 7) + "-01")
       .lte("session_date", todayDate),
 
-    // Recent 5 attendance records
     supabase
       .from("attendance_records")
       .select(`status, session_date, class_id, classes(name)`)
@@ -105,6 +93,12 @@ export default async function MemberDashboardPage() {
       .order("session_date", { ascending: false })
       .limit(5),
   ]);
+
+  const unpaidList = unpaidInvoices ?? [];
+  const totalOutstanding = unpaidList.reduce(
+    (s, i) => s + Math.max(0, (i.total_amount ?? 0) - (i.amount_paid ?? 0)),
+    0
+  );
 
   // Today's classes
   const todayClasses = (enrollments ?? []).flatMap((e) => {
@@ -121,7 +115,6 @@ export default async function MemberDashboardPage() {
   const nextClass = (() => {
     const now = new Date();
     const nowMin = now.getHours() * 60 + now.getMinutes();
-    // Check today first, then next days
     for (let delta = 0; delta <= 6; delta++) {
       const dow = (todayDow + delta) % 7;
       const matches = (enrollments ?? []).flatMap((e) => {
@@ -161,10 +154,10 @@ export default async function MemberDashboardPage() {
       if (!cp?.full_name) return [];
       return [{ name: cp.full_name, phone: cp.phone ?? null }];
     });
-  }).filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i); // dedupe
+  }).filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i);
 
   return (
-    <div className="p-4 space-y-4 max-w-lg mx-auto">
+    <>
       {/* Greeting */}
       <div className="pt-2">
         <p className="text-muted-foreground text-sm">{greeting()},</p>
@@ -326,6 +319,37 @@ export default async function MemberDashboardPage() {
           Kamu belum terdaftar di kelas apapun. Hubungi admin untuk pendaftaran.
         </div>
       )}
+    </>
+  );
+}
+
+// ── Skeleton ───────────────────────────────────────────────────────────────────
+function DashboardSkeleton() {
+  return (
+    <>
+      <div className="pt-2 space-y-1 animate-pulse">
+        <div className="h-4 w-28 bg-muted rounded" />
+        <div className="h-7 w-40 bg-muted rounded" />
+      </div>
+      <div className="h-16 bg-muted rounded-xl animate-pulse" />
+      <div className="h-16 bg-muted rounded-xl animate-pulse" />
+      <div className="h-24 bg-muted rounded-xl animate-pulse" />
+      <div className="h-32 bg-muted rounded-xl animate-pulse" />
+    </>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+export default async function MemberDashboardPage() {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  return (
+    <div className="p-4 space-y-4 max-w-lg mx-auto">
+      <Suspense fallback={<DashboardSkeleton />}>
+        <MemberDashboardContent userId={user.id} />
+      </Suspense>
     </div>
   );
 }

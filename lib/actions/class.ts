@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { createClassSchema, updateClassSchema } from "@/lib/schemas/class";
 import type { ActionResult } from "@/lib/types/common";
@@ -59,6 +59,7 @@ export async function createClass(
   }
 
   revalidatePath("/a/kelas");
+  revalidateTag(`stats-admin-${branch_id}`, "minutes");
   return { data: cls };
 }
 

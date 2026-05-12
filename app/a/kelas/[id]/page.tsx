@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -16,7 +17,21 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function ClassDetailPage({ params }: PageProps) {
+function PageSkeleton() {
+  return (
+    <div className="p-6 max-w-3xl space-y-6 animate-pulse">
+      <div className="h-7 w-48 bg-muted rounded" />
+      <div className="h-10 bg-muted rounded" />
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 bg-muted rounded" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function PageContent({ params }: PageProps) {
   const { id } = await params;
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
@@ -165,6 +180,16 @@ export default async function ClassDetailPage({ params }: PageProps) {
           <ClassDangerTab classId={cls.id} isDeleted={!!cls.deleted_at} />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+export default function ClassDetailPage({ params }: PageProps) {
+  return (
+    <div>
+      <Suspense fallback={<PageSkeleton />}>
+        <PageContent params={params} />
+      </Suspense>
     </div>
   );
 }

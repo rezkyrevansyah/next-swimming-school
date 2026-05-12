@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
@@ -37,14 +38,22 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function MemberRapotDetailPage({ params }: PageProps) {
-  const supabase = createClient(await cookies());
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+function SimpleSkeleton() {
+  return (
+    <div className="p-4 space-y-3 animate-pulse">
+      <div className="h-7 w-40 bg-muted rounded" />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
 
+async function PageContent({ params }: PageProps) {
   const { id } = await params;
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: member } = await supabase
     .from("members")
@@ -80,7 +89,7 @@ export default async function MemberRapotDetailPage({ params }: PageProps) {
   const rate = Number(report.attendance_rate ?? 0);
 
   return (
-    <div className="p-4 space-y-5 max-w-lg mx-auto pb-24">
+    <>
       {/* Back */}
       <div className="pt-2">
         <Link href="/m/rapot" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3">
@@ -180,6 +189,16 @@ export default async function MemberRapotDetailPage({ params }: PageProps) {
           ? new Date(report.published_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
           : "—"}
       </p>
+    </>
+  );
+}
+
+export default function MemberRapotDetailPage({ params }: PageProps) {
+  return (
+    <div className="p-4 space-y-5 max-w-lg mx-auto pb-24">
+      <Suspense fallback={<SimpleSkeleton />}>
+        <PageContent params={params} />
+      </Suspense>
     </div>
   );
 }

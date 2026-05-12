@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -21,11 +22,20 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
   );
 }
 
-export default async function CoachProfilPage() {
+function SimpleSkeleton() {
+  return (
+    <div className="p-4 space-y-3 animate-pulse">
+      <div className="h-7 w-40 bg-muted rounded" />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+async function PageContent() {
   const supabase = createClient(await cookies());
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: coach } = await supabase
@@ -71,7 +81,7 @@ export default async function CoachProfilPage() {
   const displayName = profile?.nickname || profile?.full_name || "Pelatih";
 
   return (
-    <div className="p-4 space-y-4 max-w-lg mx-auto pb-24">
+    <>
       <div className="pt-2">
         <h1 className="text-xl font-semibold">Profil Saya</h1>
       </div>
@@ -194,6 +204,16 @@ export default async function CoachProfilPage() {
         <Settings className="h-4 w-4" />
         Pengaturan Akun
       </Link>
+    </>
+  );
+}
+
+export default function CoachProfilPage() {
+  return (
+    <div className="p-4 space-y-4 max-w-lg mx-auto pb-24">
+      <Suspense fallback={<SimpleSkeleton />}>
+        <PageContent />
+      </Suspense>
     </div>
   );
 }

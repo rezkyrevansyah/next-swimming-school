@@ -1,20 +1,27 @@
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { GenerateForm } from "./generate-form";
 
-export default async function GenerateInvoicePage() {
+function PageSkeleton() {
+  return (
+    <div className="p-6 space-y-4 animate-pulse">
+      <div className="h-8 w-48 bg-muted rounded" />
+      <div className="h-96 bg-muted rounded-xl" />
+    </div>
+  );
+}
+
+async function PageContent() {
   const jar = await cookies();
   const supabase = createClient(jar);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Branch context
   const activeBranchId = jar.get("active_branch_id")?.value ?? null;
   let branchId = activeBranchId;
   if (!branchId) {
@@ -23,14 +30,12 @@ export default async function GenerateInvoicePage() {
   }
   if (!branchId) redirect("/login");
 
-  // Fetch branch name
   const { data: branch } = await supabase
     .from("branches")
     .select("id, name")
     .eq("id", branchId)
     .single();
 
-  // Count eligible members (active, regular, individual payment)
   const { count: eligibleCount } = await supabase
     .from("members")
     .select("*", { count: "exact", head: true })
@@ -41,8 +46,19 @@ export default async function GenerateInvoicePage() {
     .is("deleted_at", null);
 
   return (
+    <div className="rounded-xl border bg-card p-5">
+      <GenerateForm
+        branchId={branchId}
+        branchName={branch?.name ?? "—"}
+        eligibleMemberCount={eligibleCount ?? 0}
+      />
+    </div>
+  );
+}
+
+export default function GenerateInvoicePage() {
+  return (
     <div className="p-4 md:p-6 max-w-lg space-y-5">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <Link
           href="/a/finansial"
@@ -58,13 +74,9 @@ export default async function GenerateInvoicePage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card p-5">
-        <GenerateForm
-          branchId={branchId}
-          branchName={branch?.name ?? "—"}
-          eligibleMemberCount={eligibleCount ?? 0}
-        />
-      </div>
+      <Suspense fallback={<PageSkeleton />}>
+        <PageContent />
+      </Suspense>
     </div>
   );
 }
