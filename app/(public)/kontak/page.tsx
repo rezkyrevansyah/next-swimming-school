@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import { MapPin, Phone, Clock, MessageCircle, Waves } from "lucide-react";
 
-export const metadata: Metadata = { title: "Kontak" };
+export const metadata: Metadata = {
+  title: "Kontak",
+  description: "Hubungi Next Swimming School untuk informasi kelas, jadwal, dan pendaftaran. Kami siap membantu Anda.",
+  openGraph: {
+    title: "Kontak — Next Swimming School",
+    description: "Hubungi Next Swimming School untuk informasi kelas, jadwal, dan pendaftaran.",
+    type: "website",
+  },
+};
 
 const BRANCHES = [
   {

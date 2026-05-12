@@ -51,6 +51,22 @@ CREATE TABLE public.branches (
   CONSTRAINT branches_pkey PRIMARY KEY (id),
   CONSTRAINT fk_branches_manager FOREIGN KEY (manager_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.change_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  requester_id uuid NOT NULL,
+  resource_type text NOT NULL CHECK (resource_type = ANY (ARRAY['member_profile'::text, 'coach_profile'::text])),
+  resource_id uuid NOT NULL,
+  changes jsonb NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])),
+  reviewed_by uuid,
+  reviewed_at timestamp with time zone,
+  note text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT change_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT change_requests_requester_id_fkey FOREIGN KEY (requester_id) REFERENCES auth.users(id),
+  CONSTRAINT change_requests_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES auth.users(id)
+);
 CREATE TABLE public.class_coaches (
   class_id uuid NOT NULL,
   coach_id uuid NOT NULL,

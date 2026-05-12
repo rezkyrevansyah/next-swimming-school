@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { QrCode, Clock } from "lucide-react";
+import { QrCode, Clock, Settings } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,13 +97,22 @@ export default async function MemberProfilPage() {
       </div>
 
       {/* QR shortcut */}
-      <Link
-        href="/m/qr"
-        className={cn(buttonVariants({ variant: "outline" }), "w-full gap-2 justify-center")}
-      >
-        <QrCode className="h-4 w-4" />
-        Tampilkan QR Code
-      </Link>
+      <div className="flex gap-2">
+        <Link
+          href="/m/qr"
+          className={cn(buttonVariants({ variant: "outline" }), "flex-1 gap-2 justify-center")}
+        >
+          <QrCode className="h-4 w-4" />
+          Tampilkan QR Code
+        </Link>
+        <Link
+          href="/m/pengaturan"
+          className={cn(buttonVariants({ variant: "outline" }), "gap-2 justify-center")}
+          title="Pengaturan"
+        >
+          <Settings className="h-4 w-4" />
+        </Link>
+      </div>
 
       {/* Pending change request notice */}
       {pendingRequest && (

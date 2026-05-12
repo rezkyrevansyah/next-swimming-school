@@ -20,6 +20,7 @@ import {
   ScrollText,
   CheckSquare,
   Award,
+  MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/a/absensi/coach", label: "Absensi Pelatih", icon: MapPin, exact: false },
   { href: "/a/semester", label: "Semester", icon: GraduationCap },
   { href: "/a/rapot", label: "Rapot", icon: GraduationCap },
+  { href: "/a/reminder", label: "Reminder WA", icon: MessageCircle },
   { href: "/a/approval", label: "Persetujuan", icon: CheckSquare },
   { href: "/a/log", label: "Log Aktivitas", icon: ScrollText },
 ];

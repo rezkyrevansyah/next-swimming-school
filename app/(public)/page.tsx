@@ -1,7 +1,31 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Waves, Users, BarChart3, QrCode } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://nextswimmingschool.vercel.app";
+
+export const metadata: Metadata = {
+  title: "Next Swimming School — Sekolah Renang Terbaik",
+  description:
+    "Next Swimming School menyediakan program renang terstruktur untuk anak, remaja, dan dewasa. Pelatih bersertifikat, kelas kecil, dan sistem digital modern.",
+  openGraph: {
+    title: "Next Swimming School — Sekolah Renang Terbaik",
+    description:
+      "Program renang terstruktur untuk semua usia. Pelatih bersertifikat, kelas kecil, absensi & rapot digital.",
+    url: APP_URL,
+    siteName: "Next Swimming School",
+    locale: "id_ID",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Next Swimming School",
+    description: "Sekolah renang modern dengan sistem manajemen digital.",
+  },
+  alternates: { canonical: APP_URL },
+};
 
 const PROGRAMS = [
   {
@@ -52,9 +76,52 @@ const STATS = [
   { value: "15+", label: "Pelatih" },
 ];
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SportsActivityLocation",
+      "@id": `${APP_URL}/#organization`,
+      name: "Next Swimming School",
+      url: APP_URL,
+      description: "Sekolah renang modern dengan pelatih bersertifikat dan sistem manajemen digital.",
+      "@context": "https://schema.org",
+      potentialAction: {
+        "@type": "ReserveAction",
+        target: { "@type": "EntryPoint", urlTemplate: `${APP_URL}/daftar/member` },
+        result: { "@type": "Reservation", name: "Daftar Kelas Renang" },
+      },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "Berapa umur minimal untuk ikut kelas renang?",
+          acceptedAnswer: { "@type": "Answer", text: "Kelas kami tersedia mulai dari usia 4 tahun untuk program anak pemula." },
+        },
+        {
+          "@type": "Question",
+          name: "Bagaimana cara mendaftar?",
+          acceptedAnswer: { "@type": "Answer", text: "Isi formulir pendaftaran online di halaman Daftar, lalu kirim bukti pembayaran melalui WhatsApp ke admin kami." },
+        },
+        {
+          "@type": "Question",
+          name: "Apakah tersedia kelas privat?",
+          acceptedAnswer: { "@type": "Answer", text: "Ya, kami menyediakan kelas privat one-on-one dengan jadwal yang fleksibel sesuai kebutuhan Anda." },
+        },
+      ],
+    },
+  ],
+};
+
 export default function LandingPage() {
   return (
     <div className="overflow-x-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ── HERO ──────────────────────────────────────────────────────── */}
       <section className="relative min-h-[88svh] flex flex-col items-center justify-center text-center px-5 pt-10 pb-32 overflow-hidden bg-gradient-to-b from-sky-50 via-white to-white">
         {/* Background blobs */}

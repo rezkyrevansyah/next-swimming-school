@@ -4,7 +4,15 @@ import { ArrowRight, Clock, Users, Trophy, Waves } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Program" };
+export const metadata: Metadata = {
+  title: "Program",
+  description: "Temukan program renang yang tepat untuk Anda — anak pemula, lanjutan, remaja, dewasa, hingga kelas privat.",
+  openGraph: {
+    title: "Program Renang — Next Swimming School",
+    description: "Program renang terstruktur untuk semua usia dengan pelatih bersertifikat.",
+    type: "website",
+  },
+};
 
 const PROGRAMS = [
   {

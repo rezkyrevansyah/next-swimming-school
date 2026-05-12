@@ -4,7 +4,15 @@ import { ArrowRight, Heart, Shield, Star, Waves } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Tentang Kami" };
+export const metadata: Metadata = {
+  title: "Tentang Kami",
+  description: "Kenali lebih dekat Next Swimming School — misi, nilai, dan tim di balik sekolah renang terbaik kami.",
+  openGraph: {
+    title: "Tentang Kami — Next Swimming School",
+    description: "Kenali lebih dekat Next Swimming School — misi, nilai, dan tim pelatih bersertifikat kami.",
+    type: "website",
+  },
+};
 
 const VALUES = [
   {
