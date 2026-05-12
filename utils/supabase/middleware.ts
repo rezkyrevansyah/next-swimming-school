@@ -25,7 +25,9 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({
+            request: { headers: request.headers },
+          });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -60,8 +62,12 @@ export async function updateSession(request: NextRequest) {
   // Authenticated user on /login → redirect to their role-specific dashboard
   if (user && pathname === "/login") {
     // Call the user_role() RPC directly (same client, already authenticated)
-    const { data: roleData } = await supabase.rpc("user_role");
+    const { data: roleData, error: roleError } = await supabase.rpc("user_role");
     const role = roleData as string | null;
+    // If RPC fails or returns null/unknown role, don't redirect to avoid loops
+    if (roleError || !role || !["owner", "manager", "admin", "coach", "member"].includes(role)) {
+      return supabaseResponse;
+    }
     const destination = getRoleRedirectPath(role);
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = destination;
