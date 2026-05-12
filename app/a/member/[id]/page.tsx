@@ -11,6 +11,8 @@ import { MemberDangerTab } from "./member-danger-tab";
 import { MemberClassTab } from "./member-class-tab";
 import { MemberRapotTab } from "./member-rapot-tab";
 import { MemberQrCard } from "@/components/shared/member-qr-card";
+import { MemberPaymentTab } from "./member-payment-tab";
+import { MemberAbsensiTab } from "./member-absensi-tab";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Aktif",
@@ -77,6 +79,30 @@ export default async function MemberDetailPage({ params }: PageProps) {
     .is("deleted_at", null)
     .order("name");
 
+  // Fetch attendance records (latest 50)
+  const { data: attendanceRecords } = await supabase
+    .from("attendance_records")
+    .select(`
+      id, session_date, status, scan_method, notes,
+      classes(name),
+      coaches:recorded_by_coach_id(coach_profiles(full_name))
+    `)
+    .eq("member_id", id)
+    .order("session_date", { ascending: false })
+    .limit(50);
+
+  // Fetch invoices (only for individual payment members)
+  const invoices = member.payment_handling === "individual"
+    ? (await supabase
+        .from("monthly_invoices")
+        .select("id, period_month, total_amount, amount_paid, status, due_date, generated_at")
+        .eq("member_id", id)
+        .order("period_month", { ascending: false })
+      ).data ?? []
+    : [];
+
+  const unpaidInvoiceCount = invoices.filter((i) => i.status === "unpaid").length;
+
   // Fetch report cards
   const { data: reportCards } = await supabase
     .from("report_cards")
@@ -132,6 +158,22 @@ export default async function MemberDetailPage({ params }: PageProps) {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="absensi">
+            Absensi
+            {(attendanceRecords ?? []).length > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-muted text-muted-foreground text-[10px] font-bold">
+                {(attendanceRecords ?? []).length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="pembayaran">
+            Pembayaran
+            {unpaidInvoiceCount > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                {unpaidInvoiceCount}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="qr">QR Code</TabsTrigger>
           <TabsTrigger value="bahaya">Zona Berbahaya</TabsTrigger>
         </TabsList>
@@ -150,6 +192,17 @@ export default async function MemberDetailPage({ params }: PageProps) {
 
         <TabsContent value="rapot" className="mt-4">
           <MemberRapotTab reports={(reportCards ?? []) as any} />
+        </TabsContent>
+
+        <TabsContent value="absensi" className="mt-4">
+          <MemberAbsensiTab records={(attendanceRecords ?? []) as any} />
+        </TabsContent>
+
+        <TabsContent value="pembayaran" className="mt-4">
+          <MemberPaymentTab
+            invoices={invoices as any}
+            memberPaymentHandling={member.payment_handling}
+          />
         </TabsContent>
 
         <TabsContent value="qr" className="mt-4">

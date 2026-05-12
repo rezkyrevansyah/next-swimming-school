@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Clock, FileText } from "lucide-react";
+import { CheckCircle2, Clock, FileText, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -70,9 +70,18 @@ export default async function AdminRapotPage({ searchParams }: PageProps) {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <div>
-        <h1 className="text-xl md:text-2xl font-semibold">Rapot</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">{count ?? 0} rapot</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl md:text-2xl font-semibold">Rapot</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{count ?? 0} rapot</p>
+        </div>
+        <Link
+          href="/a/rapot/notifikasi"
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2 shrink-0")}
+        >
+          <MessageCircle className="h-4 w-4" />
+          Notifikasi WA
+        </Link>
       </div>
 
       {/* Filters */}

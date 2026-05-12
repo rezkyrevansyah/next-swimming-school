@@ -188,6 +188,17 @@ CREATE TABLE public.coaches (
   CONSTRAINT coaches_pkey PRIMARY KEY (id),
   CONSTRAINT coaches_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.invoice_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  invoice_id uuid NOT NULL,
+  class_id uuid,
+  description text NOT NULL,
+  amount numeric NOT NULL DEFAULT 0 CHECK (amount >= 0::numeric),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT invoice_items_pkey PRIMARY KEY (id),
+  CONSTRAINT invoice_items_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.monthly_invoices(id),
+  CONSTRAINT invoice_items_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id)
+);
 CREATE TABLE public.member_profiles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   member_id uuid NOT NULL UNIQUE,
@@ -235,6 +246,36 @@ CREATE TABLE public.members (
   CONSTRAINT members_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT members_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id),
   CONSTRAINT members_school_id_fkey FOREIGN KEY (school_id) REFERENCES public.schools(id)
+);
+CREATE TABLE public.monthly_invoices (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  member_id uuid NOT NULL,
+  branch_id uuid NOT NULL,
+  period_month text NOT NULL,
+  total_amount numeric NOT NULL DEFAULT 0 CHECK (total_amount >= 0::numeric),
+  amount_paid numeric NOT NULL DEFAULT 0 CHECK (amount_paid >= 0::numeric),
+  status USER-DEFINED NOT NULL DEFAULT 'unpaid'::invoice_status,
+  due_date date,
+  notes text,
+  generated_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT monthly_invoices_pkey PRIMARY KEY (id),
+  CONSTRAINT monthly_invoices_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.members(id),
+  CONSTRAINT monthly_invoices_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id)
+);
+CREATE TABLE public.payments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  invoice_id uuid NOT NULL,
+  amount numeric NOT NULL CHECK (amount > 0::numeric),
+  paid_at timestamp with time zone NOT NULL DEFAULT now(),
+  proof_url text,
+  recorded_by uuid,
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT payments_pkey PRIMARY KEY (id),
+  CONSTRAINT payments_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.monthly_invoices(id),
+  CONSTRAINT payments_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.permissions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

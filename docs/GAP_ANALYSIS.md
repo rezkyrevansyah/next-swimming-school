@@ -1,151 +1,172 @@
-# Gap Analysis: Fitur yang Belum Ada
+# Gap Analysis — Next Swimming School
 
-> Analisis berdasarkan blueprint v3 final, BUILD_PLAN_v2.md, dan catatan meeting.
-> Dibandingkan dengan audit codebase aktual per 2026-05-11.
-
----
-
-## ✅ Sudah Ada
-
-| Area | Status |
-|------|--------|
-| Auth (login, logout, role redirect) | ✅ |
-| DB schema (20+ tabel, RLS, migrations 001–011) | ✅ |
-| Public: landing, program list, tentang, kontak | ✅ |
-| Public: self-registration member | ✅ |
-| Admin: dashboard, member CRUD, coach CRUD, kelas CRUD | ✅ |
-| Admin: registrasi approval, absensi rekap, absensi manual, semester | ✅ |
-| Coach: dashboard, clock-in, absensi hub + per-kelas, kelas list/detail, profil, rapot | ✅ |
-| Member: dashboard, QR, jadwal, absensi, coach list, profil, rapot list/detail | ✅ |
-| Owner: dashboard stub | ✅ |
+> Audit terakhir: **2026-05-12** · Codebase aktual vs Blueprint v3 Final + Catatan Meeting
+> Total route aktif: **65 halaman** (build clean, 0 error)
 
 ---
 
-## 🔴 Belum Ada
+## ✅ Sudah Selesai
 
-### 1. Public Site
+### Auth & Infrastruktur
+| Fitur | Catatan |
+|-------|---------|
+| Auth: login, logout, role redirect | ✅ |
+| DB schema (20+ tabel, RLS, migrations 001–015) | ✅ 015 = finance tables |
+| `sitemap.ts` + `robots.ts` | ✅ |
+| Activity log (tabel + halaman `/a/log`) | ✅ |
+| Change request system (migration 014) | ✅ |
+| Finance tables (migration 015: `monthly_invoices`, `invoice_items`, `payments`) | ✅ |
 
-| # | Halaman / Fitur | Blueprint Ref | Prioritas |
-|---|-----------------|---------------|-----------|
-| P1 | `/daftar/member/sukses` — halaman konfirmasi setelah submit + tombol WA kirim bukti transfer | §7.2 | 🔴 Launch |
-| P2 | `app/sitemap.ts` + `app/robots.ts` | §7.1 | 🔴 Launch |
-| P3 | Public footer di layout | BUILD_PLAN §M1.3 | 🔴 Launch |
-| P4 | `/program/[slug]` — halaman detail per program | §6.A | 🟡 Penting |
-| P5 | JSON-LD Schema.org (LocalBusiness, Course, FAQPage) di landing | §7.1 | 🟡 Penting |
-| P6 | OG tags / meta description per halaman | §7.1 | 🟡 Penting |
-| P7 | `/berita` + `/berita/[slug]` — halaman berita (butuh tabel `news_articles`) | §6.A | 🟢 Phase 2 |
+### Public Site
+| Route | Status |
+|-------|--------|
+| `/` — Landing page (SEO, Schema.org, OG) | ✅ |
+| `/program` — List program | ✅ |
+| `/program/[slug]` — Detail program | ✅ |
+| `/tentang`, `/kontak` | ✅ |
+| `/daftar/member` — Multi-step registrasi | ✅ |
+| `/daftar/member/sukses` — Konfirmasi + tombol WA | ✅ |
+| `/login`, `/lupa-password`, `/reset-password` | ✅ |
+| Public footer | ✅ |
 
----
+### Admin Panel `/a/*`
+| Route / Fitur | Status |
+|---------------|--------|
+| `/a/dashboard` — 4 stat cards + kelas hari ini + absensi terbaru | ✅ |
+| `/a/member` — List + filter | ✅ |
+| `/a/member/baru` | ✅ |
+| `/a/member/registrasi` — Approval pendaftaran | ✅ |
+| `/a/member/[id]` — Tabs: Profil, Kelas, Rapot, **Absensi**, Pembayaran, QR, Bahaya | ✅ Tab absensi baru |
+| `/a/coach` — List | ✅ |
+| `/a/coach/baru` | ✅ |
+| `/a/coach/sertifikat` — Approval sertifikat | ✅ |
+| `/a/coach/[id]` — Tabs: Profil, Kelas, Sertifikat, Absensi, Bahaya | ✅ |
+| `/a/kelas`, `/a/kelas/baru`, `/a/kelas/[id]` | ✅ |
+| `/a/absensi` — Rekap member | ✅ |
+| `/a/absensi/manual` | ✅ |
+| `/a/absensi/coach` — Rekap clock-in + toggle suspicious | ✅ |
+| `/a/semester` | ✅ |
+| `/a/admin` — Kelola admin cabang | ✅ |
+| `/a/approval` — Hub approval profil member/coach | ✅ |
+| `/a/rapot` — List semua rapot (+ tombol notif WA) | ✅ |
+| `/a/rapot/[id]` — Detail rapot | ✅ |
+| `/a/rapot/notifikasi` — List rapot published + kirim WA ke ortu | ✅ Baru |
+| `/a/reminder` — Hub kirim WA reminder ke member | ✅ |
+| `/a/log` — Activity log | ✅ |
+| `/a/finansial` — Dashboard tagihan + list invoice | ✅ |
+| `/a/finansial/generate` — Generate tagihan bulanan | ✅ |
+| `/a/finansial/[invoice_id]` — Detail invoice + input pembayaran | ✅ |
+| `/a/cabang`, `/a/cabang/[id]` (owner only) | ✅ |
 
-### 2. Admin Panel (`/a/*`)
+### Coach Panel `/c/*`
+| Route | Status |
+|-------|--------|
+| `/c/dashboard` | ✅ |
+| `/c/clock-in` — Selfie + GPS | ✅ |
+| `/c/absensi`, `/c/absensi/[kelas_id]` — Scan QR + checklist | ✅ |
+| `/c/kelas`, `/c/kelas/[id]` | ✅ |
+| `/c/member`, `/c/member/[id]` — List + detail member binaan | ✅ |
+| `/c/rapot`, `/c/rapot/[member_id]` — Input rapot | ✅ |
+| `/c/profil` — View + **Edit form** + change_request | ✅ |
+| `/c/qr` — QR code coach fullscreen | ✅ |
+| `/c/pengaturan` — Ubah password | ✅ |
 
-| # | Halaman / Fitur | Blueprint Ref | Prioritas |
-|---|-----------------|---------------|-----------|
-| A1 | **Tab kelas** di `/a/member/[id]` — lihat + add/remove member ke kelas | §7.9 | 🔴 Launch |
-| A2 | **Tab kelas** di `/a/coach/[id]` — kelas yang diajar coach | §6.D | 🔴 Launch |
-| A3 | `/a/absensi/coach` — rekap clock-in coach + flag suspicious | §6.D | 🔴 Launch |
-| A4 | `/a/approval` — approval hub untuk request edit profil member/coach | §6.D | 🔴 Launch |
-| A5 | `/a/log` — activity log viewer (tabel sudah ada di DB) | §6.D | 🟡 Penting |
-| A6 | **Tab rapot** di `/a/member/[id]` — list rapot member | §7.9 | 🟡 Penting |
-| A7 | **Tab absensi/clock-in** di `/a/coach/[id]` — history clock-in coach | §6.D | 🟡 Penting |
-| A8 | **Tab sertifikat** di `/a/coach/[id]` — list + status approval | catatan meeting §55 | 🟡 Penting |
-| A9 | `/a/coach/sertifikat` — halaman approval sertifikat coach (manager/owner) | §6.D | 🟡 Penting |
-| A10 | `/a/rapot` + `/a/rapot/[id]` — admin view semua rapot siswa | §6.D, §7.9 | 🟡 Penting |
-| A11 | `/a/reminder` — kirim WA reminder ke member (template + manual) | §6.D | 🟡 Penting |
-| A12 | Dashboard lebih lengkap: attendance rate, kelas minggu ini, aktivitas terbaru | catatan meeting §2 | 🟡 Penting |
-| A13 | `/a/member/import` — bulk import afiliasi via CSV/Excel | §7.10 | 🟢 Phase 2 |
+### Member Panel `/m/*`
+| Route | Status |
+|-------|--------|
+| `/m/dashboard` — + **banner tagihan overdue** | ✅ Banner baru |
+| `/m/qr` | ✅ |
+| `/m/jadwal` | ✅ |
+| `/m/absensi` | ✅ |
+| `/m/rapot`, `/m/rapot/[id]` | ✅ |
+| `/m/coach` | ✅ |
+| `/m/profil` — View + Edit + approval flow | ✅ |
+| `/m/pembayaran` — List tagihan member | ✅ Baru |
+| `/m/pengaturan` — Ubah password | ✅ |
 
----
-
-### 3. Coach Panel (`/c/*`)
-
-| # | Halaman / Fitur | Blueprint Ref | Prioritas |
-|---|-----------------|---------------|-----------|
-| C1 | `/c/member` — list semua member binaan coach | §6.C | 🔴 Launch |
-| C2 | `/c/member/[id]` — detail member binaan + tombol WA + history absen | §6.C | 🔴 Launch |
-| C3 | `/c/qr` — QR code coach fullscreen (dedicated page) | §6.C | 🟡 Penting |
-| C4 | Upload sertifikat dari coach panel | catatan meeting §55 | 🟡 Penting |
-| C5 | `/c/notifikasi` — inbox notifikasi | §6.C | 🟢 Phase 2 |
-| C6 | `/c/pengaturan` — ubah password + notification preferences | §6.C | 🟢 Phase 2 |
-
----
-
-### 4. Member Panel (`/m/*`)
-
-| # | Halaman / Fitur | Blueprint Ref | Prioritas |
-|---|-----------------|---------------|-----------|
-| M1 | `/m/profil` — edit profil + request approval ke admin | §6.B, §7.9 | 🔴 Launch |
-| M2 | Review/rating coach setelah rapot publish | §7.8, catatan meeting §57 | 🟢 Phase 2 |
-| M3 | Banner pembayaran overdue di dashboard | §7.3 | 🟢 Phase 2 |
-| M4 | `/m/notifikasi` — inbox notifikasi | §6.B | 🟢 Phase 2 |
-| M5 | `/m/pengaturan` — ubah password + preferences | §6.B | 🟢 Phase 2 |
-
----
-
-### 5. Owner Panel (`/o/*`)
-
-Seluruh owner panel adalah **Phase 2**. Hanya stub `/o/dashboard` yang ada. Skip untuk sekarang.
-
----
-
-### 6. DB / Migration yang Belum Ada
-
-| Tabel | Dibutuhkan untuk | Prioritas |
-|-------|------------------|-----------|
-| `change_requests` | A4 (approval hub), M1 (edit profil) | 🔴 Launch |
-| `news_articles` | P7 (berita) | 🟢 Phase 2 |
-| `notifications` + `user_notification_preferences` | C5, M4 | 🟢 Phase 2 |
-| `report_card_reviews` | M2 (review coach) | 🟢 Phase 2 |
-
----
-
-## Urutan Pengerjaan yang Direkomendasikan
-
-### Batch 1 — Tidak butuh migration baru
-1. P3 — Public footer
-2. P1 — `/daftar/member/sukses`
-3. P2 — `sitemap.ts` + `robots.ts`
-4. A3 — `/a/absensi/coach`
-5. A2 + A1 — Tab kelas di coach detail + member detail
-6. A5 — `/a/log`
-7. C1 + C2 — `/c/member` + `/c/member/[id]`
-8. C3 — `/c/qr` fullscreen
-
-### Batch 2 — Butuh `change_requests` migration
-1. Migration `012_change_requests.sql`
-2. A4 — `/a/approval` hub
-3. M1 — Edit profil member dengan approval flow
-
-### Batch 3 — Fitur tambahan
-1. A10 — `/a/rapot` admin view
-2. A9 + A8 — Sertifikat coach (tab + halaman approval)
-3. A11 — `/a/reminder`
-4. A6 + A7 — Tab rapot + absensi di admin detail
-5. P4 — `/program/[slug]`
-6. P5 + P6 — SEO meta/OG
+### Owner Panel `/o/*`
+| Route | Status |
+|-------|--------|
+| `/o/dashboard` — Helicopter view multi-cabang | ✅ |
+| `/o/cabang`, `/o/cabang/baru`, `/o/cabang/[id]` | ✅ |
+| `/o/log` — Activity log semua cabang | ✅ |
 
 ---
 
-## File Kritis
+## 🔴 Belum Ada — Butuh Migrasi Baru
 
-| File | Aksi |
-|------|------|
-| `supabase/migrations/012_change_requests.sql` | BARU |
-| `app/(public)/daftar/member/sukses/page.tsx` | BARU |
-| `app/(public)/program/[slug]/page.tsx` | BARU |
-| `app/(public)/layout.tsx` | UPDATE — tambah footer |
-| `components/shared/public-footer.tsx` | BARU |
-| `app/sitemap.ts` | BARU |
-| `app/robots.ts` | BARU |
-| `app/a/absensi/coach/page.tsx` | BARU |
-| `app/a/approval/page.tsx` | BARU |
-| `app/a/log/page.tsx` | BARU |
-| `app/a/rapot/page.tsx` + `app/a/rapot/[id]/page.tsx` | BARU |
-| `app/a/reminder/page.tsx` | BARU |
-| `app/a/coach/sertifikat/page.tsx` | BARU |
-| `app/a/member/[id]/page.tsx` | UPDATE — tab kelas + tab rapot |
-| `app/a/coach/[id]/page.tsx` | UPDATE — tab kelas + tab sertifikat + tab absensi |
-| `app/c/member/page.tsx` | BARU |
-| `app/c/member/[id]/page.tsx` | BARU |
-| `app/c/qr/page.tsx` | BARU |
-| `app/m/profil/page.tsx` | UPDATE — tambah edit + approval flow |
+| # | Fitur | Tabel Baru | Blueprint Ref | Prioritas |
+|---|-------|-----------|---------------|-----------|
+| **N1** | `/m/notifikasi` + `/c/notifikasi` — Inbox notifikasi in-app | `notifications`, `user_notification_preferences` | §11 | 🟡 Phase 2 |
+| **N2** | Review/rating coach setelah rapot publish (member → coach) | `report_card_reviews` | §7.8, catatan §57 | 🟡 Phase 2 |
+| **N3** | `/berita` + `/berita/[slug]` — Berita publik + CMS admin | `news_articles` | §6.A | 🟡 Phase 2 |
+| **N4** | `/a/event`, `/a/event/[id]`, `/m/lomba`, `/c/lomba` — Event & lomba | `events`, `event_participants` | §6.D, catatan §62 | 🟡 Phase 2 |
+| **N5** | `/a/calendar` — Master calendar (kelas + event) | Depends N4 | §6.D | 🟢 Phase 3 |
+| **N6** | `/o/finansial` — Konsolidasi finansial multi-cabang | Depends migration 015 | §6.F | 🟢 Phase 3 |
+| **N7** | School Panel `/s/*` — View rapot murid afiliasi | `schools` (table mungkin sudah ada) | §6.G | 🟢 Phase 3 |
+
+---
+
+## 🟡 Belum Ada — Tidak Butuh Migrasi Baru
+
+| # | Fitur | Catatan | Prioritas |
+|---|-------|---------|-----------|
+| **X1** | `/a/member/import` — Bulk import CSV/Excel afiliasi | Data sudah ada di schema, perlu UI + parser | 🟡 Phase 2 |
+| **X2** | `/a/coach/izin` — Manage izin coach + assign pengganti | Catatan meeting §68-69 | 🟡 Phase 2 |
+| **X3** | `/a/rapot/timeline` — Setting deadline input rapot per semester | Extend tabel `semesters` (kolom `report_input_start/end` sudah ada) | 🟡 Phase 2 |
+| **X4** | `/a/export` — Export CSV/Excel di halaman list | Catatan meeting (ekstra), data sudah ada | 🟢 Phase 3 |
+| **X5** | OG meta di `/tentang`, `/kontak` (sudah ada di `/`, `/program`) | Minimal tambah `export const metadata` | 🟢 Phase 3 |
+| **X6** | PDF rapot auto-generated | `@react-pdf/renderer` via API route, perlu design template | 🟢 Phase 3 |
+| **X7** | PWA — manifest, service worker, install prompt | Phase 4, setelah semua fitur stabil | 🟢 Phase 4 |
+
+---
+
+## 🔵 Perlu Dicek / Potensi Bug
+
+| Issue | Detail | Urgensi |
+|-------|---------|---------|
+| `/a/cabang` sidebar | Saat ini muncul di nav semua admin — seharusnya hanya owner/manager | 🔴 Cek akses guard |
+| Tab absensi `/a/member/[id]` | Baru ditambahkan, limit 50 record — perlu pagination jika member sudah lama | 🟡 Monitor |
+| `m/pembayaran` RLS | Member lihat invoice sendiri — pastikan RLS policy `monthly_invoices` sudah cover `member.user_id` → `member.id` join | 🔴 Cek RLS |
+| Banner tagihan di `/m/dashboard` | Query `monthly_invoices` by `member.id` — jika member `payment_handling = covered_by_school` akan return empty (benar), tapi tidak perlu query sama sekali | 🟡 Optimasi |
+| `c/profil` change_request | Form edit ada, tapi perlu verifikasi flow approval muncul di `/a/approval` dengan benar | 🟡 Verifikasi |
+
+---
+
+## Ringkasan Status
+
+| Kategori | Total | Selesai | Sisa |
+|----------|-------|---------|------|
+| Public site | 8 | 8 | 0 ✅ |
+| Admin panel | 25 | 25 | 0 ✅ |
+| Coach panel | 9 | 9 | 0 ✅ |
+| Member panel | 9 | 9 | 0 ✅ |
+| Owner panel | 4 | 4 | 0 ✅ |
+| **Fitur Phase 2/3 (butuh migrasi)** | 7 | 0 | **7** |
+| **Fitur Phase 2/3 (tanpa migrasi)** | 7 | 0 | **7** |
+| **TOTAL** | **69** | **55** | **14** |
+
+---
+
+## Urutan Pengerjaan Selanjutnya
+
+### Phase 2A — Fitur Operasional Penting (Tanpa Migrasi)
+1. **X2** — `/a/coach/izin` — manage izin + pengganti (catatan meeting prioritas)
+2. **X3** — `/a/rapot/timeline` — deadline input rapot per semester
+3. **X1** — `/a/member/import` — bulk import CSV afiliasi
+4. **X4** — Export CSV/Excel
+
+### Phase 2B — Fitur Engagement (Butuh Migrasi)
+1. **N1** — Notifikasi in-app (migration: `notifications`)
+2. **N2** — Review coach post-rapot (migration: `report_card_reviews`)
+3. **N3** — CMS Berita (migration: `news_articles`)
+4. **N4** — Event & Lomba (migration: `events`, `event_participants`)
+
+### Phase 3 — Multi-Branch & School
+1. **N5** — Calendar
+2. **N6** — Owner finansial
+3. **N7** — School Panel
+
+### Phase 4 — PWA
+- **X7** — PWA (manifest, service worker, push notification)
+- **X6** — PDF rapot

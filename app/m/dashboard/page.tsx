@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { QrCode, ChevronRight, Phone } from "lucide-react";
+import { QrCode, ChevronRight, Phone, AlertCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +47,28 @@ export default async function MemberDashboardPage() {
   const displayName = profile?.nickname || profile?.full_name?.split(" ")[0] || "Anggota";
   const todayDow = new Date().getDay();
   const todayDate = new Date().toISOString().slice(0, 10);
+
+  // Unpaid invoices for banner
+  const { data: unpaidInvoices } = await supabase
+    .from("monthly_invoices")
+    .select("id, period_month, total_amount, amount_paid, status")
+    .eq("member_id", member.id)
+    .in("status", ["unpaid", "partial"])
+    .order("period_month", { ascending: false });
+
+  const unpaidList = unpaidInvoices ?? [];
+  const totalOutstanding = unpaidList.reduce(
+    (s, i) => s + Math.max(0, (i.total_amount ?? 0) - (i.amount_paid ?? 0)),
+    0
+  );
+
+  function formatRupiah(amount: number) {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  }
 
   // Get enrolled classes + schedules + coaches in parallel
   const [
@@ -148,6 +170,25 @@ export default async function MemberDashboardPage() {
         <p className="text-muted-foreground text-sm">{greeting()},</p>
         <h1 className="text-xl font-semibold">{displayName} 👋</h1>
       </div>
+
+      {/* Overdue invoice banner */}
+      {unpaidList.length > 0 && (
+        <Link
+          href="/m/pembayaran"
+          className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 hover:bg-destructive/10 transition-colors"
+        >
+          <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-destructive">
+              {unpaidList.length} tagihan belum lunas
+            </p>
+            <p className="text-xs text-destructive/80 mt-0.5">
+              Total: {formatRupiah(totalOutstanding)} · Ketuk untuk lihat detail
+            </p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+        </Link>
+      )}
 
       {/* QR CTA */}
       <Link
