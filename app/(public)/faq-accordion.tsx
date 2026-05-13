@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 
 interface FaqAccordionProps {
   faqs: { q: string; a: string }[];
@@ -20,68 +20,95 @@ export function FaqAccordion({ faqs }: FaqAccordionProps) {
         boxShadow: "0 4px 12px rgba(15,23,42,0.06)",
       }}
     >
-      {faqs.map((faq, i) => (
-        <div
-          key={i}
-          style={{ borderBottom: i < faqs.length - 1 ? "1px solid #E2E8F0" : "none" }}
-        >
-          <button
-            onClick={() => setOpen(open === i ? null : i)}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-              padding: "20px 24px",
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
+      {faqs.map((faq, i) => {
+        const isOpen = open === i;
+        return (
+          <div
+            key={i}
+            style={{ borderBottom: i < faqs.length - 1 ? "1px solid #E2E8F0" : "none" }}
           >
-            <span
+            <button
+              onClick={() => setOpen(isOpen ? null : i)}
+              aria-expanded={isOpen}
               style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: open === i ? "#1E5DB8" : "#0F172A",
-                lineHeight: 1.4,
-              }}
-            >
-              {faq.q}
-            </span>
-            <span
-              style={{
-                flexShrink: 0,
-                width: 26,
-                height: 26,
-                borderRadius: 8,
-                backgroundColor: open === i ? "#EEF5FF" : "#F1F5F9",
+                width: "100%",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                padding: "20px 24px",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                textAlign: "left",
               }}
             >
-              {open === i
-                ? <X size={13} color="#1E5DB8" />
-                : <Plus size={13} color="#64748B" />
-              }
-            </span>
-          </button>
-          {open === i && (
+              <span
+                style={{
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: isOpen ? "#1E5DB8" : "#0F172A",
+                  lineHeight: 1.4,
+                  transition: "color 0.2s ease",
+                }}
+              >
+                {faq.q}
+              </span>
+              <span
+                style={{
+                  flexShrink: 0,
+                  width: 26,
+                  height: 26,
+                  borderRadius: 8,
+                  backgroundColor: isOpen ? "#EEF5FF" : "#F1F5F9",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "background-color 0.2s ease",
+                }}
+              >
+                <span
+                  style={{
+                    display: "flex",
+                    transition: "transform 0.25s ease",
+                    transform: isOpen ? "rotate(0deg)" : "rotate(0deg)",
+                  }}
+                >
+                  {isOpen
+                    ? <Minus size={13} color="#1E5DB8" />
+                    : <Plus size={13} color="#64748B" />
+                  }
+                </span>
+              </span>
+            </button>
+
+            {/* grid trick: 0fr → 1fr animates height smoothly without JS measurement */}
             <div
               style={{
-                padding: "0 24px 20px",
-                fontSize: 14,
-                color: "#475569",
-                lineHeight: 1.65,
+                display: "grid",
+                gridTemplateRows: isOpen ? "1fr" : "0fr",
+                transition: "grid-template-rows 0.28s ease",
               }}
             >
-              {faq.a}
+              <div style={{ overflow: "hidden" }}>
+                <div
+                  style={{
+                    padding: "0 24px 20px",
+                    fontSize: 14,
+                    color: "#475569",
+                    lineHeight: 1.65,
+                    opacity: isOpen ? 1 : 0,
+                    transform: isOpen ? "translateY(0)" : "translateY(-6px)",
+                    transition: "opacity 0.22s ease 0.06s, transform 0.22s ease 0.06s",
+                  }}
+                >
+                  {faq.a}
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-      ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
