@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/server";
 import { AdminSidebar } from "@/components/shared/admin-sidebar";
 import { BranchContextBanner } from "@/components/shared/branch-context-banner";
 import { Suspense } from "react";
@@ -28,9 +28,8 @@ function SidebarShell() {
 // ── Dynamic: full sidebar with role, branch name, and badge counts ─────────────
 async function DynamicSidebar() {
   const jar = await cookies();
-  const supabase = createClient(jar);
-  const { data: roleData } = await supabase.rpc("user_role");
-  const role = (roleData as string | null) ?? "admin";
+  // Read role & branch_id from cookies set at login — avoids RPC on every navigation
+  const role = jar.get("x-user-role")?.value ?? "admin";
 
   const activeBranchId = jar.get("active_branch_id")?.value ?? null;
   const activeBranchName = jar.get("active_branch_name")?.value ?? null;
@@ -38,8 +37,7 @@ async function DynamicSidebar() {
 
   let branchId: string | null = activeBranchId;
   if (!branchId && role !== "owner") {
-    const { data } = await supabase.rpc("user_branch_id");
-    branchId = data ?? null;
+    branchId = jar.get("x-user-branch-id")?.value ?? null;
   }
 
   let sidebarBranchName: string | null = null;
@@ -74,9 +72,7 @@ async function DynamicSidebar() {
 // ── Dynamic: owner branch context banner ──────────────────────────────────────
 async function OwnerBanner() {
   const jar = await cookies();
-  const supabase = createClient(jar);
-  const { data: roleData } = await supabase.rpc("user_role");
-  const role = (roleData as string | null) ?? "admin";
+  const role = jar.get("x-user-role")?.value ?? "admin";
   const activeBranchId = jar.get("active_branch_id")?.value ?? null;
   const activeBranchName = jar.get("active_branch_name")?.value ?? null;
   const isOwnerInAdminMode = role === "owner" && !!activeBranchId;

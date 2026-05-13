@@ -244,16 +244,19 @@ function DashboardSkeleton() {
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────────
-export default async function CoachDashboardPage() {
-  const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
+export default function CoachDashboardPage() {
   return (
     <div className="p-4 space-y-4 max-w-lg mx-auto">
       <Suspense fallback={<DashboardSkeleton />}>
-        <CoachDashboardContent userId={user.id} />
+        <CoachDashboardContentGated />
       </Suspense>
     </div>
   );
+}
+
+async function CoachDashboardContentGated() {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  return <CoachDashboardContent userId={user.id} />;
 }

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
+import { RapotFilter } from "./rapot-filter";
 
 interface PageProps {
   searchParams: Promise<{
@@ -18,13 +19,7 @@ interface PageProps {
   }>;
 }
 
-export default async function AdminRapotPage({ searchParams }: PageProps) {
-  const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const params = await searchParams;
-
+export default function AdminRapotPage({ searchParams }: PageProps) {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <Suspense fallback={
@@ -36,10 +31,19 @@ export default async function AdminRapotPage({ searchParams }: PageProps) {
           </div>
         </div>
       }>
-        <PageContent searchParams={params} />
+        <PageContentGated searchParams={searchParams} />
       </Suspense>
     </div>
   );
+}
+
+async function PageContentGated({ searchParams }: PageProps) {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const params = await searchParams;
+  return <PageContent searchParams={params} />;
 }
 
 async function PageContent({ searchParams }: {
@@ -117,33 +121,11 @@ async function PageContent({ searchParams }: {
       </div>
 
       {/* Filters */}
-      <form method="GET" action="/a/rapot" className="flex flex-wrap gap-2">
-        <select
-          name="semester_id"
-          defaultValue={semesterFilter}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="">Semua Semester</option>
-          {(semesters ?? []).map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-
-        <select
-          name="status"
-          defaultValue={statusFilter}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="">Semua Status</option>
-          <option value="published">Dipublikasikan</option>
-          <option value="draft">Draft</option>
-        </select>
-
-        <div className="flex gap-2">
-          <button type="submit" className={cn(buttonVariants({ size: "sm" }))}>Filter</button>
-          <Link href="/a/rapot" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Reset</Link>
-        </div>
-      </form>
+      <RapotFilter
+        semesterFilter={semesterFilter}
+        statusFilter={statusFilter}
+        semesters={(semesters ?? []).map((s) => ({ id: s.id, name: s.name }))}
+      />
 
       {/* List */}
       {!reports || reports.length === 0 ? (

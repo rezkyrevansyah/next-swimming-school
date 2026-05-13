@@ -29,12 +29,7 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function AdminRapotDetailPage({ params }: PageProps) {
-  const { id } = await params;
-  const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
+export default function AdminRapotDetailPage({ params }: PageProps) {
   return (
     <div className="p-4 md:p-6 max-w-2xl space-y-6">
       <Suspense fallback={
@@ -43,10 +38,18 @@ export default async function AdminRapotDetailPage({ params }: PageProps) {
           <div className="h-64 bg-muted rounded-xl" />
         </div>
       }>
-        <PageContent id={id} />
+        <PageContentGated params={params} />
       </Suspense>
     </div>
   );
+}
+
+async function PageContentGated({ params }: PageProps) {
+  const { id } = await params;
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  return <PageContent id={id} />;
 }
 
 async function PageContent({ id }: { id: string }) {

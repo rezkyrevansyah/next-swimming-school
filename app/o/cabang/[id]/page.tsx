@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createAdminClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -10,7 +11,20 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function OwnerCabangDetailPage({ params }: PageProps) {
+export default function OwnerCabangDetailPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={
+      <div className="p-6 max-w-2xl space-y-4 animate-pulse">
+        <div className="h-8 w-40 bg-muted rounded" />
+        <div className="h-48 bg-muted rounded-xl" />
+      </div>
+    }>
+      <CabangDetailContent params={params} />
+    </Suspense>
+  );
+}
+
+async function CabangDetailContent({ params }: PageProps) {
   const { id } = await params;
   const db = createAdminClient();
 

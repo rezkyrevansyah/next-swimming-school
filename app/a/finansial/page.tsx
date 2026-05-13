@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
+import { FinansialFilter } from "./finansial-filter";
 
 // ============================================================================
 // Helpers
@@ -93,17 +94,7 @@ interface PageProps {
   }>;
 }
 
-export default async function FinansialPage({ searchParams }: PageProps) {
-  const jar = await cookies();
-  const supabase = createClient(jar);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const activeBranchId = jar.get("active_branch_id")?.value ?? null;
-  const params = await searchParams;
-
+export default function FinansialPage({ searchParams }: PageProps) {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl">
       <Suspense fallback={
@@ -115,10 +106,21 @@ export default async function FinansialPage({ searchParams }: PageProps) {
           </div>
         </div>
       }>
-        <PageContent activeBranchId={activeBranchId} searchParams={params} userId={user.id} />
+        <PageContentGated searchParams={searchParams} />
       </Suspense>
     </div>
   );
+}
+
+async function PageContentGated({ searchParams }: PageProps) {
+  const jar = await cookies();
+  const supabase = createClient(jar);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const activeBranchId = jar.get("active_branch_id")?.value ?? null;
+  const params = await searchParams;
+  return <PageContent activeBranchId={activeBranchId} searchParams={params} userId={user.id} />;
 }
 
 async function PageContent({
@@ -302,81 +304,11 @@ async function PageContent({
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap items-center">
-        <span className="text-sm text-muted-foreground">Filter:</span>
-
-        {/* Period filter */}
-        <select
-          name="period"
-          defaultValue={periodFilter}
-          onChange={undefined}
-          className="h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          form="filter-form"
-        />
-
-        {/* Status filter links */}
-        {[
-          { label: "Semua", value: "" },
-          { label: "Belum Bayar", value: "unpaid" },
-          { label: "Sebagian", value: "partial" },
-          { label: "Lunas", value: "paid" },
-        ].map(({ label, value }) => {
-          const p = new URLSearchParams();
-          if (value) p.set("status", value);
-          if (periodFilter) p.set("period", periodFilter);
-          const href = `/a/finansial${p.size > 0 ? `?${p}` : ""}`;
-          const isActive = statusFilter === value;
-          return (
-            <Link
-              key={value}
-              href={href}
-              className={cn(
-                "h-8 px-3 rounded-full text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {label}
-            </Link>
-          );
-        })}
-
-        {/* Period select as link (client workaround: just list common periods) */}
-        {uniquePeriods.length > 0 && (
-          <div className="flex gap-1 flex-wrap ml-2">
-            {uniquePeriods.slice(0, 6).map((p) => {
-              const sp = new URLSearchParams();
-              if (statusFilter) sp.set("status", statusFilter);
-              sp.set("period", p);
-              const href = `/a/finansial?${sp}`;
-              const isActive = periodFilter === p;
-              return (
-                <Link
-                  key={p}
-                  href={href}
-                  className={cn(
-                    "h-7 px-2.5 rounded-full text-xs font-medium transition-colors border",
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border text-muted-foreground hover:bg-muted"
-                  )}
-                >
-                  {formatPeriod(p)}
-                </Link>
-              );
-            })}
-            {periodFilter && (
-              <Link
-                href={statusFilter ? `/a/finansial?status=${statusFilter}` : "/a/finansial"}
-                className="h-7 px-2.5 rounded-full text-xs font-medium border border-border text-muted-foreground hover:bg-muted transition-colors"
-              >
-                ✕ Reset
-              </Link>
-            )}
-          </div>
-        )}
-      </div>
+      <FinansialFilter
+        statusFilter={statusFilter}
+        periodFilter={periodFilter}
+        uniquePeriods={uniquePeriods}
+      />
 
       {/* Invoice list */}
       {(!invoices || invoices.length === 0) ? (

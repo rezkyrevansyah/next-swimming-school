@@ -28,6 +28,12 @@ export function RecordPaymentForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [amount, setAmount] = useState(outstanding);
+
+  function handleOpen(fullPay: boolean) {
+    setAmount(fullPay ? outstanding : outstanding);
+    setOpen(true);
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,6 +49,7 @@ export function RecordPaymentForm({
         setSuccess(true);
         setOpen(false);
         form.reset();
+        setAmount(outstanding);
         setTimeout(() => setSuccess(false), 3000);
       }
     });
@@ -64,16 +71,31 @@ export function RecordPaymentForm({
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold">Catat Pembayaran</p>
         {!open && (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="gap-2"
-            onClick={() => setOpen(true)}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Tambah
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              className="gap-2"
+              onClick={() => handleOpen(true)}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Lunas ({formatRupiah(outstanding)})
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              onClick={() => {
+                setAmount(0);
+                setOpen(true);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Sebagian
+            </Button>
+          </div>
         )}
       </div>
 
@@ -91,7 +113,8 @@ export function RecordPaymentForm({
               min="1"
               step="any"
               required
-              defaultValue={outstanding}
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
               placeholder="0"
               className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />

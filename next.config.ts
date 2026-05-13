@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
     // when this project is nested inside a parent directory.
     root: __dirname,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -5,7 +6,36 @@ import Link from "next/link";
 import { AlertCircle, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-export default async function CoachMemberPage() {
+function MemberSkeleton() {
+  return (
+    <div className="pb-24 animate-pulse">
+      <div className="sticky top-0 bg-background border-b px-4 py-3">
+        <div className="h-6 w-40 bg-muted rounded" />
+      </div>
+      <div className="divide-y">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3">
+            <div className="flex-1 space-y-1">
+              <div className="h-4 w-32 bg-muted rounded" />
+              <div className="h-3 w-24 bg-muted rounded" />
+            </div>
+            <div className="h-5 w-12 bg-muted rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function CoachMemberPage() {
+  return (
+    <Suspense fallback={<MemberSkeleton />}>
+      <CoachMemberContent />
+    </Suspense>
+  );
+}
+
+async function CoachMemberContent() {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

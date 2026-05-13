@@ -4,11 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ReminderClient } from "./reminder-client";
 
-export default async function AdminReminderPage() {
-  const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
+export default function AdminReminderPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-3xl">
       <Suspense fallback={
@@ -20,10 +16,17 @@ export default async function AdminReminderPage() {
           </div>
         </div>
       }>
-        <PageContent />
+        <PageContentGated />
       </Suspense>
     </div>
   );
+}
+
+async function PageContentGated() {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  return <PageContent />;
 }
 
 async function PageContent() {

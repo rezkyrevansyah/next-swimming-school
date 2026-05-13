@@ -45,6 +45,16 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
   // Use the same supabase instance (already has the new session) to fetch role
   const { data: roleData } = await supabase.rpc("user_role");
   const role = roleData as string | null;
+
+  // Cache role & branch_id in cookies so layout components don't re-fetch on every navigation
+  const jar = await cookies();
+  const cookieOpts = { httpOnly: true, secure: true, path: "/", maxAge: 60 * 60 * 24 } as const;
+  if (role) jar.set("x-user-role", role, cookieOpts);
+  if (role !== "owner") {
+    const { data: branchId } = await supabase.rpc("user_branch_id");
+    if (branchId) jar.set("x-user-branch-id", branchId as string, cookieOpts);
+  }
+
   const destination = getRoleRedirectPath(role);
   redirect(destination);
 }
@@ -87,5 +97,8 @@ export async function updatePassword(newPassword: string): Promise<ActionResult>
 export async function signOut(): Promise<void> {
   const supabase = createClient(await cookies());
   await supabase.auth.signOut();
+  const jar = await cookies();
+  jar.delete("x-user-role");
+  jar.delete("x-user-branch-id");
   redirect("/login");
 }

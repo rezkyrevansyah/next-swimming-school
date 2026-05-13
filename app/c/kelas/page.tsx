@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -11,7 +12,29 @@ function formatTime(t: string) {
   return t.slice(0, 5);
 }
 
-export default async function CoachKelasPage() {
+function KelasSkeleton() {
+  return (
+    <div className="p-4 space-y-4 max-w-lg mx-auto animate-pulse">
+      <div className="pt-2 space-y-1">
+        <div className="h-7 w-32 bg-muted rounded" />
+        <div className="h-4 w-24 bg-muted rounded" />
+      </div>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="h-24 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+export default function CoachKelasPage() {
+  return (
+    <Suspense fallback={<KelasSkeleton />}>
+      <CoachKelasContent />
+    </Suspense>
+  );
+}
+
+async function CoachKelasContent() {
   const supabase = createClient(await cookies());
   const {
     data: { user },

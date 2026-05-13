@@ -43,6 +43,7 @@ export function RegisterForm({ branches }: { branches: Branch[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [phoneOwner, setPhoneOwner] = useState<string>("");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -102,7 +103,13 @@ export function RegisterForm({ branches }: { branches: Branch[] }) {
           </Field>
 
           <Field label="HP Milik" required>
-            <select name="phone_owner" required className={selectCls} defaultValue="">
+            <select
+              name="phone_owner"
+              required
+              className={selectCls}
+              value={phoneOwner}
+              onChange={(e) => setPhoneOwner(e.target.value)}
+            >
               <option value="" disabled>Pilih...</option>
               <option value="self">Sendiri</option>
               <option value="parent">Orang Tua / Wali</option>
@@ -129,32 +136,36 @@ export function RegisterForm({ branches }: { branches: Branch[] }) {
         </Field>
       </div>
 
-      {/* Data Orang Tua (opsional, untuk murid anak) */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide pb-1 border-b">
-          Data Orang Tua / Wali <span className="font-normal normal-case text-gray-400">(untuk murid di bawah 17 tahun)</span>
-        </h3>
+      {/* Data Orang Tua — muncul hanya jika HP milik orang tua */}
+      {phoneOwner === "parent" && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide pb-1 border-b">
+            Data Orang Tua / Wali <span className="font-normal normal-case text-gray-400 ml-1">*</span>
+          </h3>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Nama Orang Tua">
-            <input
-              name="parent_name"
-              type="text"
-              placeholder="Nama orang tua"
-              className={inputCls}
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Nama Orang Tua" required>
+              <input
+                name="parent_name"
+                type="text"
+                required
+                placeholder="Nama orang tua"
+                className={inputCls}
+              />
+            </Field>
 
-          <Field label="No. HP Orang Tua">
-            <input
-              name="parent_phone"
-              type="tel"
-              placeholder="08xx-xxxx-xxxx"
-              className={inputCls}
-            />
-          </Field>
+            <Field label="No. HP Orang Tua" required hint="Nomor yang terdaftar di atas">
+              <input
+                name="parent_phone"
+                type="tel"
+                required
+                placeholder="08xx-xxxx-xxxx"
+                className={inputCls}
+              />
+            </Field>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Pilihan Kelas */}
       <div className="space-y-4">

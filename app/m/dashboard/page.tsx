@@ -340,16 +340,19 @@ function DashboardSkeleton() {
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────────
-export default async function MemberDashboardPage() {
-  const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
+export default function MemberDashboardPage() {
   return (
     <div className="p-4 space-y-4 max-w-lg mx-auto">
       <Suspense fallback={<DashboardSkeleton />}>
-        <MemberDashboardContent userId={user.id} />
+        <MemberDashboardContentGated />
       </Suspense>
     </div>
   );
+}
+
+async function MemberDashboardContentGated() {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  return <MemberDashboardContent userId={user.id} />;
 }

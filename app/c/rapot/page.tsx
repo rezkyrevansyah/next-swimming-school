@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -15,7 +16,35 @@ interface ClassMemberEntry {
   report_id: string | null;
 }
 
-export default async function CoachRapotPage() {
+function RapotSkeleton() {
+  return (
+    <div className="p-4 space-y-4 max-w-lg mx-auto animate-pulse">
+      <div className="pt-2 space-y-1">
+        <div className="h-7 w-36 bg-muted rounded" />
+        <div className="h-4 w-40 bg-muted rounded" />
+      </div>
+      <div className="h-20 bg-muted rounded-xl" />
+      <div className="grid grid-cols-3 gap-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-16 bg-muted rounded-lg" />
+        ))}
+      </div>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+export default function CoachRapotPage() {
+  return (
+    <Suspense fallback={<RapotSkeleton />}>
+      <CoachRapotContent />
+    </Suspense>
+  );
+}
+
+async function CoachRapotContent() {
   const supabase = createClient(await cookies());
   const {
     data: { user },

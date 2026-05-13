@@ -51,18 +51,19 @@ function RegistrasiSkeleton() {
   );
 }
 
-export default async function RegistrasiPage() {
-  const supabase = createClient(await cookies());
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
+export default function RegistrasiPage() {
   return (
     <Suspense fallback={<RegistrasiSkeleton />}>
-      <RegistrasiContent />
+      <RegistrasiContentGated />
     </Suspense>
   );
+}
+
+async function RegistrasiContentGated() {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  return <RegistrasiContent />;
 }
 
 async function RegistrasiContent() {

@@ -12,9 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
+import { LogFilter } from "./log-filter";
 
 const ACTION_LABEL: Record<string, string> = {
   create_member: "Buat Anggota",
@@ -138,47 +137,15 @@ async function LogContent({
       </div>
 
       {/* Filters */}
-      <form method="GET" action="/a/log" className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <select
-          name="action"
-          defaultValue={actionFilter}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="">Semua Aksi</option>
-          {uniqueActions.map((a) => (
-            <option key={a} value={a}>{ACTION_LABEL[a] ?? a}</option>
-          ))}
-        </select>
-
-        <select
-          name="resource_type"
-          defaultValue={resourceFilter}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="">Semua Tipe</option>
-          {uniqueResources.map((r) => (
-            <option key={r} value={r} className="capitalize">{r}</option>
-          ))}
-        </select>
-
-        <input
-          name="date_from"
-          type="date"
-          defaultValue={dateFrom}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <input
-          name="date_to"
-          type="date"
-          defaultValue={dateTo}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-
-        <div className="col-span-2 md:col-span-4 flex gap-2">
-          <button type="submit" className={cn(buttonVariants({ size: "sm" }))}>Filter</button>
-          <Link href="/a/log" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Reset</Link>
-        </div>
-      </form>
+      <LogFilter
+        actionFilter={actionFilter}
+        resourceFilter={resourceFilter}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        uniqueActions={uniqueActions}
+        uniqueResources={uniqueResources}
+        actionLabel={ACTION_LABEL}
+      />
 
       {/* Table */}
       <div className="rounded-lg border overflow-hidden">

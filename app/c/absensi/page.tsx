@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -10,7 +11,32 @@ const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
 function formatTime(t: string) { return t.slice(0, 5); }
 
-export default async function AbsensiHubPage() {
+function AbsensiSkeleton() {
+  return (
+    <div className="p-4 space-y-4 max-w-lg mx-auto animate-pulse">
+      <div className="pt-2 space-y-1">
+        <div className="h-7 w-36 bg-muted rounded" />
+        <div className="h-4 w-48 bg-muted rounded" />
+      </div>
+      <div className="h-16 bg-muted rounded-xl" />
+      <div className="space-y-2">
+        <div className="h-4 w-24 bg-muted rounded" />
+        <div className="h-16 bg-muted rounded-xl" />
+        <div className="h-16 bg-muted rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+export default function AbsensiHubPage() {
+  return (
+    <Suspense fallback={<AbsensiSkeleton />}>
+      <AbsensiHubContent />
+    </Suspense>
+  );
+}
+
+async function AbsensiHubContent() {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

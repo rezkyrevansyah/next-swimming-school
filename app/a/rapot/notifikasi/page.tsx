@@ -15,13 +15,7 @@ function normalizePhone(phone: string) {
   return phone.replace(/\D/g, "").replace(/^0/, "62");
 }
 
-export default async function RapotNotifikasiPage({ searchParams }: PageProps) {
-  const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const params = await searchParams;
-
+export default function RapotNotifikasiPage({ searchParams }: PageProps) {
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-2xl">
       <Suspense fallback={
@@ -33,10 +27,19 @@ export default async function RapotNotifikasiPage({ searchParams }: PageProps) {
           </div>
         </div>
       }>
-        <PageContent semesterFilter={params.semester_id ?? ""} />
+        <PageContentGated searchParams={searchParams} />
       </Suspense>
     </div>
   );
+}
+
+async function PageContentGated({ searchParams }: PageProps) {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const params = await searchParams;
+  return <PageContent semesterFilter={params.semester_id ?? ""} />;
 }
 
 async function PageContent({ semesterFilter }: { semesterFilter: string }) {

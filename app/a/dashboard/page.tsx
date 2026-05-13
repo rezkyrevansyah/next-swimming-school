@@ -208,20 +208,7 @@ function AttendanceSkeleton() {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default async function AdminDashboardPage() {
-  const jar = await cookies();
-  const supabase = createClient(jar);
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const activeBranchId = jar.get("active_branch_id")?.value ?? null;
-  let branchId = activeBranchId;
-  if (!branchId) {
-    const { data } = await supabase.rpc("user_branch_id");
-    branchId = data ?? null;
-  }
-  if (!branchId) redirect("/login");
-
+export default function AdminDashboardPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div>
@@ -232,12 +219,34 @@ export default async function AdminDashboardPage() {
       </div>
 
       <Suspense fallback={<StatsSkeleton />}>
+        <DashboardContent />
+      </Suspense>
+    </div>
+  );
+}
+
+async function DashboardContent() {
+  const jar = await cookies();
+  const supabase = createClient(jar);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const activeBranchId = jar.get("active_branch_id")?.value ?? null;
+  let branchId = activeBranchId;
+  if (!branchId) {
+    branchId = jar.get("x-user-branch-id")?.value ?? null;
+  }
+  if (!branchId) redirect("/login");
+
+  return (
+    <>
+      <Suspense fallback={<StatsSkeleton />}>
         <DashboardStats branchId={branchId} />
       </Suspense>
 
       <Suspense fallback={<AttendanceSkeleton />}>
         <RecentAttendance branchId={branchId} />
       </Suspense>
-    </div>
+    </>
   );
 }

@@ -12,10 +12,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
 import { SuspiciousToggle } from "./suspicious-toggle";
+import { AbsensiCoachFilter } from "./absensi-coach-filter";
 
 interface PageProps {
   searchParams: Promise<{
@@ -46,18 +45,21 @@ function AbsensiCoachSkeleton() {
   );
 }
 
-export default async function AbsensiCoachPage({ searchParams }: PageProps) {
+export default function AbsensiCoachPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<AbsensiCoachSkeleton />}>
+      <AbsensiCoachContentGated searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function AbsensiCoachContentGated({ searchParams }: PageProps) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const params = await searchParams;
-
-  return (
-    <Suspense fallback={<AbsensiCoachSkeleton />}>
-      <AbsensiCoachContent params={params} />
-    </Suspense>
-  );
+  return <AbsensiCoachContent params={params} />;
 }
 
 async function AbsensiCoachContent({
@@ -135,50 +137,16 @@ async function AbsensiCoachContent({
       </div>
 
       {/* Filters */}
-      <form method="GET" action="/a/absensi/coach" className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        <select
-          name="coach_id"
-          defaultValue={coachFilter}
-          className="col-span-2 md:col-span-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="">Semua Pelatih</option>
-          {(coaches ?? []).map((c) => {
-            const profile = Array.isArray(c.coach_profiles) ? c.coach_profiles[0] : c.coach_profiles;
-            return (
-              <option key={c.id} value={c.id}>{profile?.full_name ?? c.id}</option>
-            );
-          })}
-        </select>
-
-        <input
-          name="date_from"
-          type="date"
-          defaultValue={dateFrom}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-        <input
-          name="date_to"
-          type="date"
-          defaultValue={dateTo}
-          className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-
-        <label className="flex items-center gap-2 h-9 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            name="suspicious"
-            value="1"
-            defaultChecked={suspiciousOnly}
-            className="h-4 w-4 rounded border-input"
-          />
-          Hanya mencurigakan
-        </label>
-
-        <div className="col-span-2 md:col-span-4 flex gap-2">
-          <button type="submit" className={cn(buttonVariants({ size: "sm" }))}>Filter</button>
-          <Link href="/a/absensi/coach" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Reset</Link>
-        </div>
-      </form>
+      <AbsensiCoachFilter
+        coachFilter={coachFilter}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        suspiciousOnly={suspiciousOnly}
+        coaches={(coaches ?? []).map((c) => {
+          const profile = Array.isArray(c.coach_profiles) ? c.coach_profiles[0] : c.coach_profiles;
+          return { id: c.id, name: profile?.full_name ?? c.id };
+        })}
+      />
 
       {/* Table */}
       <div className="rounded-lg border overflow-hidden">

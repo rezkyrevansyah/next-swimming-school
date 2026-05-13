@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { SiteHeader } from "@/components/shared/site-header";
 import { PublicFooter } from "@/components/shared/public-footer";
+import { PageTransition } from "@/components/shared/page-transition";
 
 export default function PublicLayout({
   children,
@@ -9,13 +10,13 @@ export default function PublicLayout({
 }) {
   return (
     <>
-      <Suspense fallback={<div className="h-16 border-b bg-white" />}>
+      <Suspense fallback={<div style={{ height: 68 }} />}>
         <SiteHeader />
       </Suspense>
-      <main className="flex-1">{children}</main>
-      <Suspense fallback={<div className="h-40 border-t bg-white mt-16" />}>
-        <PublicFooter />
-      </Suspense>
+      <main className="flex-1">
+        <PageTransition>{children}</PageTransition>
+      </main>
+      <PublicFooter />
     </>
   );
 }

@@ -38,18 +38,21 @@ function SemesterSkeleton() {
   );
 }
 
-export default async function SemesterPage({ searchParams }: PageProps) {
+export default function SemesterPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<SemesterSkeleton />}>
+      <SemesterContentGated searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function SemesterContentGated({ searchParams }: PageProps) {
   const supabase = createClient(await cookies());
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const params = await searchParams;
-
-  return (
-    <Suspense fallback={<SemesterSkeleton />}>
-      <SemesterContent params={params} />
-    </Suspense>
-  );
+  return <SemesterContent params={params} />;
 }
 
 async function SemesterContent({

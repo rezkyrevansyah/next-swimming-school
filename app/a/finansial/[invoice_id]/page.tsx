@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -65,7 +66,21 @@ interface PageProps {
   params: Promise<{ invoice_id: string }>;
 }
 
-export default async function InvoiceDetailPage({ params }: PageProps) {
+export default function InvoiceDetailPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={
+      <div className="p-4 md:p-6 space-y-4 animate-pulse">
+        <div className="h-8 w-32 bg-muted rounded" />
+        <div className="h-48 bg-muted rounded-xl" />
+        <div className="h-32 bg-muted rounded-xl" />
+      </div>
+    }>
+      <InvoiceDetailContent params={params} />
+    </Suspense>
+  );
+}
+
+async function InvoiceDetailContent({ params }: PageProps) {
   const { invoice_id } = await params;
   const jar = await cookies();
   const supabase = createClient(jar);
