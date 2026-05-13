@@ -14,7 +14,9 @@ export default function PublicLayout({
         <SiteHeader />
       </Suspense>
       <main className="flex-1">
-        <PageTransition>{children}</PageTransition>
+        <Suspense fallback={null}>
+          <PageTransition>{children}</PageTransition>
+        </Suspense>
       </main>
       <PublicFooter />
     </>
