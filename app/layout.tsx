@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     template: `%s | ${APP_NAME}`,
   },
   description: "Sistem manajemen sekolah renang modern.",
+  icons: {
+    icon: "/logo-circle.png",
+  },
 };
 
 export default function RootLayout({
