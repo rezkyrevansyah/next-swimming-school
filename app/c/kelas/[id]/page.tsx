@@ -7,6 +7,7 @@ import { ArrowLeft, Phone, ClipboardList } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ProgramUrlSection } from "./program-url-section";
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
@@ -64,7 +65,7 @@ async function PageContent({ params }: PageProps) {
     await Promise.all([
       supabase
         .from("classes")
-        .select("id, name, capacity, status, age_range_min, age_range_max, class_schedules(day_of_week, start_time, end_time)")
+        .select("id, name, capacity, status, age_range_min, age_range_max, tujuan_title, tujuan_description, program_url, class_schedules(day_of_week, start_time, end_time)")
         .eq("id", id)
         .single(),
 
@@ -136,6 +137,20 @@ async function PageContent({ params }: PageProps) {
           </div>
         </div>
       )}
+
+      {/* Tujuan Kelas */}
+      {(cls.tujuan_title || cls.tujuan_description) && (
+        <div className="rounded-xl border p-4 space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tujuan Kelas</p>
+          {cls.tujuan_title && <p className="font-medium text-sm">{cls.tujuan_title}</p>}
+          {cls.tujuan_description && (
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{cls.tujuan_description}</p>
+          )}
+        </div>
+      )}
+
+      {/* Program Spreadsheet */}
+      <ProgramUrlSection classId={id} programUrl={(cls as any).program_url} />
 
       {/* Absensi shortcut */}
       <Link

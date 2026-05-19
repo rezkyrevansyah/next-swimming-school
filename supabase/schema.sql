@@ -48,6 +48,8 @@ CREATE TABLE public.branches (
   deleted_at timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  bank_account_info text,
+  operating_hours text,
   CONSTRAINT branches_pkey PRIMARY KEY (id),
   CONSTRAINT fk_branches_manager FOREIGN KEY (manager_id) REFERENCES auth.users(id)
 );
@@ -74,6 +76,19 @@ CREATE TABLE public.class_coaches (
   CONSTRAINT class_coaches_pkey PRIMARY KEY (class_id, coach_id),
   CONSTRAINT class_coaches_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
   CONSTRAINT class_coaches_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.coaches(id)
+);
+CREATE TABLE public.class_holidays (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  branch_id uuid,
+  class_id uuid,
+  holiday_date date NOT NULL,
+  name text NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT class_holidays_pkey PRIMARY KEY (id),
+  CONSTRAINT class_holidays_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id),
+  CONSTRAINT class_holidays_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT class_holidays_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.class_members (
   class_id uuid NOT NULL,
@@ -111,6 +126,10 @@ CREATE TABLE public.classes (
   deleted_at timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  cover_url text,
+  tujuan_title text,
+  tujuan_description text,
+  program_url text,
   CONSTRAINT classes_pkey PRIMARY KEY (id),
   CONSTRAINT classes_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id)
 );
@@ -161,6 +180,48 @@ CREATE TABLE public.coach_clock_records (
   CONSTRAINT coach_clock_records_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.coaches(id),
   CONSTRAINT coach_clock_records_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id)
 );
+CREATE TABLE public.coach_invoice_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  invoice_id uuid NOT NULL,
+  class_id uuid NOT NULL,
+  session_date date NOT NULL,
+  rate_per_session numeric NOT NULL CHECK (rate_per_session >= 0::numeric),
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT coach_invoice_items_pkey PRIMARY KEY (id),
+  CONSTRAINT coach_invoice_items_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.coach_invoices(id),
+  CONSTRAINT coach_invoice_items_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id)
+);
+CREATE TABLE public.coach_invoices (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  coach_id uuid NOT NULL,
+  branch_id uuid NOT NULL,
+  period_month text NOT NULL,
+  total_sessions integer NOT NULL DEFAULT 0 CHECK (total_sessions >= 0),
+  total_amount numeric NOT NULL DEFAULT 0 CHECK (total_amount >= 0::numeric),
+  status text NOT NULL DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'submitted'::text])),
+  generated_at timestamp with time zone NOT NULL DEFAULT now(),
+  deleted_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT coach_invoices_pkey PRIMARY KEY (id),
+  CONSTRAINT coach_invoices_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.coaches(id),
+  CONSTRAINT coach_invoices_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id)
+);
+CREATE TABLE public.coach_leaves (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  coach_id uuid NOT NULL,
+  class_id uuid NOT NULL,
+  leave_date date NOT NULL,
+  replacement_coach_id uuid NOT NULL,
+  reason text,
+  is_read boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT coach_leaves_pkey PRIMARY KEY (id),
+  CONSTRAINT coach_leaves_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.coaches(id),
+  CONSTRAINT coach_leaves_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT coach_leaves_replacement_coach_id_fkey FOREIGN KEY (replacement_coach_id) REFERENCES public.coaches(id)
+);
 CREATE TABLE public.coach_profiles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   coach_id uuid NOT NULL UNIQUE,
@@ -173,8 +234,58 @@ CREATE TABLE public.coach_profiles (
   specializations ARRAY DEFAULT '{}'::text[],
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  is_featured boolean NOT NULL DEFAULT false,
+  alamat text,
+  pendidikan_nama text,
+  pendidikan_tahun integer,
+  nomor_rekening text,
+  nama_bank text,
+  bio text,
   CONSTRAINT coach_profiles_pkey PRIMARY KEY (id),
   CONSTRAINT coach_profiles_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.coaches(id)
+);
+CREATE TABLE public.coach_rates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  branch_id uuid NOT NULL,
+  class_id uuid,
+  coach_id uuid,
+  rate_per_session numeric NOT NULL CHECK (rate_per_session >= 0::numeric),
+  effective_from date NOT NULL DEFAULT CURRENT_DATE,
+  notes text,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT coach_rates_pkey PRIMARY KEY (id),
+  CONSTRAINT coach_rates_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id),
+  CONSTRAINT coach_rates_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT coach_rates_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.coaches(id),
+  CONSTRAINT coach_rates_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.coach_reviews (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  report_card_id uuid NOT NULL,
+  member_id uuid NOT NULL,
+  coach_id uuid NOT NULL,
+  rating smallint NOT NULL CHECK (rating >= 1 AND rating <= 10),
+  comment text,
+  edited_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT coach_reviews_pkey PRIMARY KEY (id),
+  CONSTRAINT coach_reviews_report_card_id_fkey FOREIGN KEY (report_card_id) REFERENCES public.report_cards(id),
+  CONSTRAINT coach_reviews_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.members(id),
+  CONSTRAINT coach_reviews_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.coaches(id)
+);
+CREATE TABLE public.coach_suspensions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  coach_id uuid NOT NULL,
+  suspended_by uuid NOT NULL,
+  reason text,
+  suspended_at timestamp with time zone NOT NULL DEFAULT now(),
+  resume_at timestamp with time zone NOT NULL,
+  lifted_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT coach_suspensions_pkey PRIMARY KEY (id),
+  CONSTRAINT coach_suspensions_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.coaches(id),
+  CONSTRAINT coach_suspensions_suspended_by_fkey FOREIGN KEY (suspended_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.coaches (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -198,6 +309,17 @@ CREATE TABLE public.invoice_items (
   CONSTRAINT invoice_items_pkey PRIMARY KEY (id),
   CONSTRAINT invoice_items_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.monthly_invoices(id),
   CONSTRAINT invoice_items_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id)
+);
+CREATE TABLE public.member_leaves (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  member_id uuid NOT NULL,
+  class_id uuid NOT NULL,
+  leave_date date NOT NULL,
+  reason text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT member_leaves_pkey PRIMARY KEY (id),
+  CONSTRAINT member_leaves_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.members(id),
+  CONSTRAINT member_leaves_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id)
 );
 CREATE TABLE public.member_profiles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -242,6 +364,9 @@ CREATE TABLE public.members (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   password_changed_at timestamp with time zone,
+  private_sessions_total integer,
+  private_sessions_used integer NOT NULL DEFAULT 0,
+  private_package_price numeric CHECK (private_package_price >= 0::numeric),
   CONSTRAINT members_pkey PRIMARY KEY (id),
   CONSTRAINT members_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT members_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id),
@@ -260,9 +385,14 @@ CREATE TABLE public.monthly_invoices (
   generated_at timestamp with time zone NOT NULL DEFAULT now(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  discount_type text CHECK (discount_type = ANY (ARRAY['nominal'::text, 'percent'::text])),
+  discount_value numeric DEFAULT 0 CHECK (discount_value >= 0::numeric),
+  discount_reason text,
+  discounted_by uuid,
   CONSTRAINT monthly_invoices_pkey PRIMARY KEY (id),
   CONSTRAINT monthly_invoices_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.members(id),
-  CONSTRAINT monthly_invoices_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id)
+  CONSTRAINT monthly_invoices_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id),
+  CONSTRAINT monthly_invoices_discounted_by_fkey FOREIGN KEY (discounted_by) REFERENCES auth.users(id)
 );
 CREATE TABLE public.payments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -357,6 +487,19 @@ CREATE TABLE public.semesters (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT semesters_pkey PRIMARY KEY (id),
   CONSTRAINT semesters_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id)
+);
+CREATE TABLE public.skill_criteria (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  branch_id uuid NOT NULL,
+  key text NOT NULL,
+  label text NOT NULL,
+  description text,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT skill_criteria_pkey PRIMARY KEY (id),
+  CONSTRAINT skill_criteria_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(id)
 );
 CREATE TABLE public.user_roles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

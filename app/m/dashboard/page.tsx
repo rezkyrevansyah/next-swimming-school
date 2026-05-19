@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { QrCode, ChevronRight, Phone, AlertCircle } from "lucide-react";
+import { QrCode, ChevronRight, Phone, AlertCircle, Hourglass } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +39,7 @@ async function MemberDashboardContent({ userId }: { userId: string }) {
 
   const { data: member } = await supabase
     .from("members")
-    .select(`id, member_id_code, status, member_profiles(full_name, nickname, phone)`)
+    .select(`id, member_id_code, status, type, private_sessions_total, private_sessions_used, member_profiles(full_name, nickname, phone)`)
     .eq("user_id", userId)
     .single();
 
@@ -163,6 +163,23 @@ async function MemberDashboardContent({ userId }: { userId: string }) {
         <p className="text-muted-foreground text-sm">{greeting()},</p>
         <h1 className="text-xl font-semibold">{displayName} 👋</h1>
       </div>
+
+      {/* Private sessions reminder */}
+      {(member as any).type === "private" &&
+        (member as any).private_sessions_total != null &&
+        ((member as any).private_sessions_total - ((member as any).private_sessions_used ?? 0)) <= 1 && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 px-4 py-3">
+          <Hourglass className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+              Sesi paket hampir habis
+            </p>
+            <p className="text-xs text-amber-600/80 mt-0.5">
+              Tersisa {(member as any).private_sessions_total - ((member as any).private_sessions_used ?? 0)} sesi dari {(member as any).private_sessions_total} total. Hubungi admin untuk perpanjangan.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Overdue invoice banner */}
       {unpaidList.length > 0 && (

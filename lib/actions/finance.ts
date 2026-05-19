@@ -8,6 +8,7 @@ import {
   recordPaymentSchema,
   deletePaymentSchema,
   updateInvoiceNotesSchema,
+  applyDiscountSchema,
 } from "@/lib/schemas/finance";
 import type { ActionResult } from "@/lib/types/common";
 import { logActivity } from "@/lib/utils/activity-log";
@@ -351,6 +352,66 @@ export async function updateInvoiceNotes(
   if (error) {
     return { error: `Gagal memperbarui invoice: ${error.message}` };
   }
+
+  revalidatePath(`/a/finansial/${invoice_id}`);
+  revalidatePath("/a/finansial");
+
+  return { data: undefined };
+}
+
+// ============================================================================
+// applyDiscount
+// Applies a nominal or percent discount to an invoice. Admin/owner only.
+// ============================================================================
+export async function applyDiscount(
+  formData: FormData
+): Promise<ActionResult<void>> {
+  const supabase = createClient(await cookies());
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = applyDiscountSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { error: "Data tidak valid.", fieldErrors: parsed.error.flatten() };
+  }
+
+  const { invoice_id, discount_type, discount_value, discount_reason } = parsed.data;
+
+  const { data: invoice, error: fetchErr } = await supabase
+    .from("monthly_invoices")
+    .select("id, total_amount, branch_id")
+    .eq("id", invoice_id)
+    .single();
+
+  if (fetchErr || !invoice) {
+    return { error: "Invoice tidak ditemukan." };
+  }
+
+  const { error } = await supabase
+    .from("monthly_invoices")
+    .update({
+      discount_type,
+      discount_value,
+      discount_reason: discount_reason || null,
+      discounted_by: user.id,
+    })
+    .eq("id", invoice_id);
+
+  if (error) {
+    return { error: `Gagal menerapkan diskon: ${error.message}` };
+  }
+
+  await logActivity(supabase, {
+    action: "apply_discount",
+    resource_type: "monthly_invoices",
+    resource_id: invoice_id,
+    branch_id: invoice.branch_id,
+    metadata: { discount_type, discount_value },
+  });
 
   revalidatePath(`/a/finansial/${invoice_id}`);
   revalidatePath("/a/finansial");

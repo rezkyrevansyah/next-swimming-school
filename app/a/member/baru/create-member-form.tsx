@@ -49,6 +49,7 @@ export function CreateMemberForm({ branches }: Props) {
   });
 
   const phoneOwner = watch("phone_owner");
+  const memberType = watch("type");
 
   function onSubmit(data: CreateMemberInput) {
     startTransition(async () => {
@@ -250,7 +251,7 @@ export function CreateMemberForm({ branches }: Props) {
             <Select
               defaultValue="regular"
               onValueChange={(v) =>
-                setValue("type", v as "regular" | "affiliate", {
+                setValue("type", v as "regular" | "affiliate" | "private", {
                   shouldValidate: true,
                 })
               }
@@ -261,6 +262,7 @@ export function CreateMemberForm({ branches }: Props) {
               <SelectContent>
                 <SelectItem value="regular">Reguler</SelectItem>
                 <SelectItem value="affiliate">Afiliasi (Sekolah)</SelectItem>
+                <SelectItem value="private">Private (1-on-1)</SelectItem>
               </SelectContent>
             </Select>
             {errors.type && (
@@ -288,6 +290,40 @@ export function CreateMemberForm({ branches }: Props) {
               </SelectContent>
             </Select>
           </div>
+
+          {memberType === "private" && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="private_sessions_total">
+                  Total Sesi Paket <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="private_sessions_total"
+                  type="number"
+                  min="1"
+                  max="999"
+                  {...register("private_sessions_total")}
+                  placeholder="Contoh: 12"
+                />
+                {errors.private_sessions_total && (
+                  <p className="text-xs text-destructive">{errors.private_sessions_total.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="private_package_price">Harga Paket (Rp)</Label>
+                <Input
+                  id="private_package_price"
+                  type="number"
+                  min="0"
+                  {...register("private_package_price")}
+                  placeholder="Contoh: 1500000"
+                />
+                {errors.private_package_price && (
+                  <p className="text-xs text-destructive">{errors.private_package_price.message}</p>
+                )}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

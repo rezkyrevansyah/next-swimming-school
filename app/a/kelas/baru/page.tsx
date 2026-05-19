@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { CreateClassForm } from "./create-class-form";
+import { getCachedBranches } from "@/lib/cache/master-data";
 
 function PageSkeleton() {
   return (
@@ -35,11 +36,7 @@ async function PageContent() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: branches } = await supabase
-    .from("branches")
-    .select("id, name")
-    .eq("status", "active")
-    .order("name");
+  const branches = await getCachedBranches();
 
   return (
     <div className="p-6 max-w-2xl space-y-6">
@@ -56,7 +53,7 @@ async function PageContent() {
         </div>
       </div>
 
-      <CreateClassForm branches={branches ?? []} />
+      <CreateClassForm branches={branches} />
     </div>
   );
 }

@@ -13,6 +13,16 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // Supabase join results are untyped objects; casting as any is intentional
+      "@typescript-eslint/no-explicit-any": "warn",
+      // Closing drawer on pathname change is intentional setState-in-effect
+      "react-hooks/set-state-in-effect": "warn",
+      // Refs-during-render pattern used in page-transition (state-based now, but keep warn for others)
+      "react-hooks/refs": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

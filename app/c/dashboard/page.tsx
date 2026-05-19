@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ClipboardList, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, AlertCircle, ShieldBan, Bell } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -54,7 +54,7 @@ async function CoachDashboardContent({ userId }: { userId: string }) {
   const todayDow = new Date().getDay();
   const todayDate = new Date().toISOString().slice(0, 10);
 
-  const [{ data: allCoachClasses }, { data: clockRecord }] = await Promise.all([
+  const [{ data: allCoachClasses }, { data: clockRecord }, { data: activeSuspensions }, { data: unreadLeaves }] = await Promise.all([
     supabase
       .from("class_coaches")
       .select(`
@@ -73,7 +73,26 @@ async function CoachDashboardContent({ userId }: { userId: string }) {
       .eq("branch_id", branchId ?? "")
       .eq("clock_in_date", todayDate)
       .maybeSingle(),
+
+    supabase
+      .from("coach_suspensions")
+      .select("id, reason, resume_at")
+      .eq("coach_id", coach.id)
+      .is("lifted_at", null)
+      .gt("resume_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1),
+
+    supabase
+      .from("coach_leaves")
+      .select("id, leave_date, reason, coaches!coach_leaves_coach_id_fkey(coach_profiles(full_name)), classes(name)")
+      .eq("replacement_coach_id", coach.id)
+      .eq("is_read", false)
+      .gte("leave_date", todayDate)
+      .order("leave_date", { ascending: true }),
   ]);
+
+  const activeSuspension = activeSuspensions?.[0] ?? null;
 
   // Filter: classes at primary branch, active, with schedule today
   const todaySchedules = (allCoachClasses ?? [])
@@ -118,6 +137,60 @@ async function CoachDashboardContent({ userId }: { userId: string }) {
           {branch?.name ?? "—"} · {DAYS[todayDow]}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
         </p>
       </div>
+
+      {/* Suspension banner */}
+      {activeSuspension && (
+        <div className="rounded-xl border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800 p-4 flex items-start gap-3">
+          <ShieldBan className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-red-800 dark:text-red-300">Akun kamu sedang disuspend</p>
+            <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">
+              Aktif kembali:{" "}
+              <strong>
+                {new Date(activeSuspension.resume_at).toLocaleDateString("id-ID", {
+                  day: "numeric", month: "long", year: "numeric",
+                })}
+              </strong>
+              {activeSuspension.reason && ` · ${activeSuspension.reason}`}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Leave notifications */}
+      {(unreadLeaves ?? []).length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+            <Bell className="h-3.5 w-3.5" />
+            Notifikasi Izin
+          </h2>
+          {(unreadLeaves ?? []).map((leave) => {
+            const leaveCoach = Array.isArray((leave as any).coaches) ? (leave as any).coaches[0] : (leave as any).coaches;
+            const cp = Array.isArray(leaveCoach?.coach_profiles) ? leaveCoach.coach_profiles[0] : leaveCoach?.coach_profiles;
+            const cls = Array.isArray((leave as any).classes) ? (leave as any).classes[0] : (leave as any).classes;
+            return (
+              <div
+                key={leave.id}
+                className="rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 px-4 py-3"
+              >
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                  {cp?.full_name ?? "Pelatih"} izin · {cls?.name ?? "kelas"}
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+                  Tanggal:{" "}
+                  {new Date(leave.leave_date).toLocaleDateString("id-ID", {
+                    day: "numeric", month: "long", year: "numeric",
+                  })}
+                  {leave.reason && ` · ${leave.reason}`}
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  Kamu perlu menghandle kelas ini sebagai pengganti.
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Clock-in banner */}
       {hasClasses && (

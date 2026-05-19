@@ -1,9 +1,9 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createClient, createAdminClient } from "@/utils/supabase/server";
-import { createCoachSchema, updateCoachSchema } from "@/lib/schemas/coach";
+import { createCoachSchema, updateCoachSchema, coachLeaveSchema } from "@/lib/schemas/coach";
 import { uploadToR2 } from "@/lib/storage";
 import { haversineDistance } from "@/lib/utils/haversine";
 import { logActivity } from "@/lib/utils/activity-log";
@@ -130,6 +130,7 @@ export async function createCoach(
   });
 
   revalidatePath("/a/coach");
+  revalidateTag("coaches", "max");
   return { data: coach };
 }
 
@@ -145,7 +146,7 @@ export async function updateCoach(
     return { error: "Data tidak valid.", fieldErrors: parsed.error.flatten() };
   }
 
-  const { id, full_name, nickname, dob, gender, phone, specializations } =
+  const { id, full_name, nickname, dob, gender, phone, specializations, alamat, pendidikan_nama, pendidikan_tahun, nomor_rekening, nama_bank, bio } =
     parsed.data;
 
   const profileUpdate: Record<string, unknown> = {};
@@ -162,6 +163,12 @@ export async function updateCoach(
           .filter(Boolean)
       : null;
   }
+  if (alamat !== undefined) profileUpdate.alamat = alamat || null;
+  if (pendidikan_nama !== undefined) profileUpdate.pendidikan_nama = pendidikan_nama || null;
+  if (pendidikan_tahun !== undefined) profileUpdate.pendidikan_tahun = pendidikan_tahun || null;
+  if (nomor_rekening !== undefined) profileUpdate.nomor_rekening = nomor_rekening || null;
+  if (nama_bank !== undefined) profileUpdate.nama_bank = nama_bank || null;
+  if (bio !== undefined) profileUpdate.bio = bio || null;
 
   if (Object.keys(profileUpdate).length > 0) {
     const { error: profileError } = await supabase
@@ -184,6 +191,7 @@ export async function updateCoach(
 
   revalidatePath("/a/coach");
   revalidatePath(`/a/coach/${id}`);
+  revalidateTag("coaches", "max");
   return { data: updated };
 }
 
@@ -202,6 +210,7 @@ export async function setCoachStatus(
 
   revalidatePath(`/a/coach/${id}`);
   revalidatePath("/a/coach");
+  revalidateTag("coaches", "max");
   return { data: undefined };
 }
 
@@ -217,6 +226,7 @@ export async function softDeleteCoach(id: string): Promise<ActionResult> {
   if (error) return { error: `Gagal mengarsipkan pelatih: ${error.message}` };
 
   revalidatePath("/a/coach");
+  revalidateTag("coaches", "max");
   return { data: undefined };
 }
 
@@ -231,6 +241,7 @@ export async function hardDeleteCoach(id: string): Promise<ActionResult> {
   if (error) return { error: `Gagal menghapus pelatih: ${error.message}` };
 
   revalidatePath("/a/coach");
+  revalidateTag("coaches", "max");
   return { data: undefined };
 }
 
@@ -245,6 +256,7 @@ export async function restoreCoach(id: string): Promise<ActionResult> {
   if (error) return { error: `Gagal memulihkan pelatih: ${error.message}` };
 
   revalidatePath("/a/coach");
+  revalidateTag("coaches", "max");
   return { data: undefined };
 }
 
@@ -582,5 +594,192 @@ export async function rejectCertificate(certId: string, notes: string): Promise<
   revalidatePath(`/a/coach/${cert.coach_id}`);
   revalidatePath("/c/profil");
 
+  return { data: undefined };
+}
+
+// ─── Suspend ──────────────────────────────────────────────────────────────────
+
+export async function suspendCoach(
+  coachId: string,
+  durationDays: number,
+  reason?: string
+): Promise<ActionResult<{ singleCoachClasses: { id: string; name: string }[] }>> {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  if (durationDays < 1) return { error: "Durasi minimal 1 hari." };
+
+  const resumeAt = new Date();
+  resumeAt.setDate(resumeAt.getDate() + durationDays);
+
+  const { error } = await supabase.from("coach_suspensions").insert({
+    coach_id: coachId,
+    suspended_by: user.id,
+    reason: reason || null,
+    resume_at: resumeAt.toISOString(),
+  });
+
+  if (error) return { error: `Gagal mensuspend pelatih: ${error.message}` };
+
+  // Find classes where this coach is the only assigned coach
+  const { data: coachClasses } = await supabase
+    .from("class_coaches")
+    .select("class_id, classes(id, name)")
+    .eq("coach_id", coachId);
+
+  const singleCoachClasses: { id: string; name: string }[] = [];
+  for (const cc of coachClasses ?? []) {
+    const { count } = await supabase
+      .from("class_coaches")
+      .select("*", { count: "exact", head: true })
+      .eq("class_id", cc.class_id);
+    if ((count ?? 0) === 1) {
+      const cls = Array.isArray(cc.classes) ? cc.classes[0] : cc.classes;
+      if (cls) singleCoachClasses.push({ id: (cls as { id: string; name: string }).id, name: (cls as { id: string; name: string }).name });
+    }
+  }
+
+  await logActivity(supabase, {
+    action: "suspend_coach",
+    resource_type: "coaches",
+    resource_id: coachId,
+    metadata: { duration_days: durationDays, resume_at: resumeAt.toISOString() },
+  });
+
+  revalidatePath("/a/coach");
+  revalidatePath(`/a/coach/${coachId}`);
+  revalidatePath("/c/dashboard");
+
+  return { data: { singleCoachClasses } };
+}
+
+export async function liftSuspension(suspensionId: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { data: suspension } = await supabase
+    .from("coach_suspensions")
+    .select("coach_id")
+    .eq("id", suspensionId)
+    .single();
+
+  if (!suspension) return { error: "Suspensi tidak ditemukan." };
+
+  const { error } = await supabase
+    .from("coach_suspensions")
+    .update({ lifted_at: new Date().toISOString() })
+    .eq("id", suspensionId);
+
+  if (error) return { error: `Gagal mencabut suspensi: ${error.message}` };
+
+  revalidatePath("/a/coach");
+  revalidatePath(`/a/coach/${suspension.coach_id}`);
+  revalidatePath("/c/dashboard");
+
+  return { data: undefined };
+}
+
+// ─── Izin Pelatih ─────────────────────────────────────────────────────────────
+
+export async function submitLeaveRequest(input: {
+  class_id: string;
+  leave_date: string;
+  replacement_coach_id: string;
+  reason?: string;
+}): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const parsed = coachLeaveSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: "Data tidak valid.", fieldErrors: parsed.error.flatten() };
+  }
+
+  const { class_id, leave_date, replacement_coach_id, reason } = parsed.data;
+
+  const { data: coach } = await supabase
+    .from("coaches")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!coach) return { error: "Profil pelatih tidak ditemukan." };
+
+  // Verify coach is assigned to this class
+  const { data: access } = await supabase
+    .from("class_coaches")
+    .select("class_id")
+    .eq("class_id", class_id)
+    .eq("coach_id", coach.id)
+    .maybeSingle();
+  if (!access) return { error: "Kamu tidak terdaftar di kelas ini." };
+
+  if (replacement_coach_id === coach.id) {
+    return { error: "Tidak bisa memilih diri sendiri sebagai pengganti." };
+  }
+
+  const { error } = await supabase.from("coach_leaves").insert({
+    coach_id: coach.id,
+    class_id,
+    leave_date,
+    replacement_coach_id,
+    reason: reason || null,
+    is_read: false,
+  });
+
+  if (error) {
+    if (error.code === "23505") return { error: "Izin untuk kelas dan tanggal ini sudah ada." };
+    return { error: `Gagal menyimpan izin: ${error.message}` };
+  }
+
+  revalidatePath("/c/absensi");
+  revalidatePath("/c/dashboard");
+
+  return { data: undefined };
+}
+
+export async function cancelLeaveRequest(leaveId: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { data: coach } = await supabase
+    .from("coaches")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+  if (!coach) return { error: "Profil pelatih tidak ditemukan." };
+
+  const { data: leave } = await supabase
+    .from("coach_leaves")
+    .select("coach_id, leave_date")
+    .eq("id", leaveId)
+    .single();
+
+  if (!leave) return { error: "Data izin tidak ditemukan." };
+  if (leave.coach_id !== coach.id) return { error: "Tidak diizinkan." };
+
+  const { error } = await supabase.from("coach_leaves").delete().eq("id", leaveId);
+  if (error) return { error: `Gagal membatalkan izin: ${error.message}` };
+
+  revalidatePath("/c/absensi");
+  revalidatePath("/c/dashboard");
+
+  return { data: undefined };
+}
+
+export async function markLeaveAsRead(leaveId: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+
+  const { error } = await supabase
+    .from("coach_leaves")
+    .update({ is_read: true })
+    .eq("id", leaveId);
+
+  if (error) return { error: `Gagal memperbarui: ${error.message}` };
+
+  revalidatePath("/c/dashboard");
   return { data: undefined };
 }

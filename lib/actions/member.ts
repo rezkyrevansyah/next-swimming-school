@@ -52,6 +52,8 @@ export async function createMember(
     type,
     payment_handling,
     school_id,
+    private_sessions_total,
+    private_package_price,
     email,
     password,
   } = parsed.data;
@@ -87,6 +89,10 @@ export async function createMember(
       user_id: userId,
       has_account: !!userId,
       member_id_code: memberIdCode,
+      ...(type === "private" && {
+        private_sessions_total: private_sessions_total || null,
+        private_package_price: private_package_price || null,
+      }),
     })
     .select()
     .single();
@@ -171,10 +177,12 @@ export async function updateMember(
     type,
     payment_handling,
     school_id,
+    private_sessions_total,
+    private_package_price,
   } = parsed.data;
 
   // Update member record
-  if (branch_id || type || payment_handling !== undefined || school_id !== undefined) {
+  if (branch_id || type || payment_handling !== undefined || school_id !== undefined || private_sessions_total !== undefined || private_package_price !== undefined) {
     const { error: memberError } = await supabase
       .from("members")
       .update({
@@ -182,6 +190,10 @@ export async function updateMember(
         ...(type && { type }),
         ...(payment_handling && { payment_handling }),
         ...(school_id !== undefined && { school_id: school_id || null }),
+        ...(type === "private" && {
+          private_sessions_total: private_sessions_total || null,
+          private_package_price: private_package_price || null,
+        }),
       })
       .eq("id", id!);
 

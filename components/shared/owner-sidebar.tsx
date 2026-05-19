@@ -10,6 +10,8 @@ import {
   Menu,
   X,
   Crown,
+  Receipt,
+  DollarSign,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -19,6 +21,8 @@ import { LogoCircle } from "@/components/shared/logo";
 
 const NAV_ITEMS = [
   { href: "/o/dashboard", label: "Helicopter View", icon: LayoutDashboard },
+  { href: "/o/invoice-coach", label: "Invoice Pelatih", icon: Receipt },
+  { href: "/o/tarif-coach", label: "Tarif Pelatih", icon: DollarSign },
   { href: "/o/cabang", label: "Cabang", icon: Building2 },
   { href: "/o/log", label: "Log Aktivitas", icon: ScrollText },
 ] as const;

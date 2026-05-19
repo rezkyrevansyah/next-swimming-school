@@ -96,7 +96,7 @@ export default function AdminLayout({
         <Suspense fallback={<SidebarShell />}>
           <DynamicSidebar />
         </Suspense>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto animate-[--animate-page-in]">{children}</main>
       </div>
     </div>
   );

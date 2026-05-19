@@ -45,7 +45,7 @@ async function PageContent({
       .single(),
     supabase
       .from("classes")
-      .select("id, name")
+      .select("id, name, branch_id")
       .eq("id", class_id)
       .single(),
     supabase
@@ -74,6 +74,25 @@ async function PageContent({
   const member = memberRes.data;
   const cls = classRes.data;
   const semester = semesterRes.data;
+
+  // Fetch skill criteria for this branch
+  const { data: skillCriteriaData } = await supabase
+    .from("skill_criteria")
+    .select("key, label, description")
+    .eq("branch_id", cls.branch_id)
+    .eq("is_active", true)
+    .order("sort_order");
+
+  const skillCriteria = (skillCriteriaData ?? []).length > 0
+    ? skillCriteriaData!
+    : [
+        { key: "teknik_dasar", label: "Teknik Dasar", description: null },
+        { key: "teknik_napas", label: "Teknik Napas", description: null },
+        { key: "koordinasi", label: "Koordinasi Gerak", description: null },
+        { key: "kecepatan", label: "Kecepatan", description: null },
+        { key: "ketahanan", label: "Ketahanan", description: null },
+        { key: "kedisiplinan", label: "Kedisiplinan", description: null },
+      ];
   const existing = existingReportRes.data;
 
   // Calculate attendance stats
@@ -131,6 +150,7 @@ async function PageContent({
         } : null}
         canEdit={canEdit}
         coachAuthId={coach_id}
+        skillCriteria={skillCriteria}
       />
     </>
   );

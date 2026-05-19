@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { CreateMemberForm } from "./create-member-form";
+import { getCachedBranches } from "@/lib/cache/master-data";
 
 function CreateMemberSkeleton() {
   return (
@@ -60,11 +61,7 @@ async function CreateMemberContent() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: branches } = await supabase
-    .from("branches")
-    .select("id, name")
-    .eq("status", "active")
-    .order("name");
+  const branches = await getCachedBranches();
 
-  return <CreateMemberForm branches={branches ?? []} />;
+  return <CreateMemberForm branches={branches} />;
 }

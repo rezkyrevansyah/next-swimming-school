@@ -3,18 +3,26 @@
 import { useTransition, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
-import { softDeleteCoach, restoreCoach, hardDeleteCoach, resetCoachPassword } from "@/lib/actions/coach";
+import { Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { softDeleteCoach, restoreCoach, hardDeleteCoach, resetCoachPassword, suspendCoach, liftSuspension } from "@/lib/actions/coach";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Props {
   coachId: string;
   userId: string | null;
   isDeleted: boolean;
   passwordChangedAt: string | null;
+  activeSuspension: {
+    id: string;
+    reason: string | null;
+    suspended_at: string;
+    resume_at: string;
+  } | null;
+  singleCoachClasses: { id: string; name: string }[];
 }
 
 function formatDateTime(iso: string) {
@@ -24,12 +32,15 @@ function formatDateTime(iso: string) {
   });
 }
 
-export function CoachDangerTab({ coachId, userId, isDeleted, passwordChangedAt }: Props) {
+export function CoachDangerTab({ coachId, userId, isDeleted, passwordChangedAt, activeSuspension, singleCoachClasses }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [newPassword, setNewPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [suspendDays, setSuspendDays] = useState("");
+  const [suspendReason, setSuspendReason] = useState("");
+  const [currentSuspension, setCurrentSuspension] = useState(activeSuspension);
 
   function handleDelete() {
     if (!confirm("Yakin ingin mengarsipkan pelatih ini?")) return;
@@ -71,6 +82,39 @@ export function CoachDangerTab({ coachId, userId, isDeleted, passwordChangedAt }
       router.push("/a/coach");
     });
   }
+
+  function handleSuspend() {
+    const days = parseInt(suspendDays, 10);
+    if (!days || days < 1) { toast.error("Durasi minimal 1 hari"); return; }
+    if (singleCoachClasses.length > 0) {
+      const names = singleCoachClasses.map((c) => c.name).join(", ");
+      if (!confirm(`Pelatih ini adalah satu-satunya pelatih di: ${names}. Lanjutkan suspend?`)) return;
+    }
+    startTransition(async () => {
+      const result = await suspendCoach(coachId, days, suspendReason || undefined);
+      if (result.error) { toast.error(result.error); return; }
+      toast.success(`Pelatih disuspend selama ${days} hari`);
+      setSuspendDays("");
+      setSuspendReason("");
+      router.refresh();
+    });
+  }
+
+  function handleLiftSuspension() {
+    if (!currentSuspension) return;
+    if (!confirm("Cabut suspensi sekarang?")) return;
+    startTransition(async () => {
+      const result = await liftSuspension(currentSuspension.id);
+      if (result.error) { toast.error(result.error); return; }
+      toast.success("Suspensi berhasil dicabut");
+      setCurrentSuspension(null);
+      router.refresh();
+    });
+  }
+
+  const resumeDate = currentSuspension
+    ? new Date(currentSuspension.resume_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+    : null;
 
   return (
     <div className="space-y-4">
@@ -120,6 +164,80 @@ export function CoachDangerTab({ coachId, userId, isDeleted, passwordChangedAt }
           </CardContent>
         </Card>
       )}
+
+      {/* Suspend Coach */}
+      <Card className="border-amber-500/40">
+        <CardHeader>
+          <CardTitle className="text-sm text-amber-600 dark:text-amber-400">Suspend Pelatih</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {singleCoachClasses.length > 0 && !currentSuspension && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                Pelatih ini adalah satu-satunya pelatih di:{" "}
+                <strong>{singleCoachClasses.map((c) => c.name).join(", ")}</strong>.
+                Suspend akan membuat kelas tersebut tanpa pelatih.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {currentSuspension ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Pelatih sedang disuspend hingga <strong>{resumeDate}</strong>.
+                {currentSuspension.reason && ` Alasan: ${currentSuspension.reason}`}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLiftSuspension}
+                disabled={isPending}
+              >
+                {isPending ? "Memproses..." : "Cabut Suspensi"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Pelatih tidak bisa login atau mengakses kelas selama masa suspensi.
+              </p>
+              <div className="flex gap-2 items-end flex-wrap">
+                <div className="space-y-1.5">
+                  <Label htmlFor="suspend-days" className="text-xs">Durasi (hari)</Label>
+                  <Input
+                    id="suspend-days"
+                    type="number"
+                    min={1}
+                    value={suspendDays}
+                    onChange={(e) => setSuspendDays(e.target.value)}
+                    className="w-24"
+                    placeholder="7"
+                  />
+                </div>
+                <div className="space-y-1.5 flex-1 min-w-[160px]">
+                  <Label htmlFor="suspend-reason" className="text-xs">Alasan (opsional)</Label>
+                  <Input
+                    id="suspend-reason"
+                    value={suspendReason}
+                    onChange={(e) => setSuspendReason(e.target.value)}
+                    placeholder="Alasan suspensi..."
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-amber-500/60 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
+                  onClick={handleSuspend}
+                  disabled={isPending || !suspendDays}
+                >
+                  {isPending ? "Memproses..." : "Suspend"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Archive / Restore */}
       <Card className={isDeleted ? undefined : "border-destructive/40"}>

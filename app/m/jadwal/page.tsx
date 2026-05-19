@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { ExternalLink } from "lucide-react";
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 function formatTime(t: string) { return t.slice(0, 5); }
@@ -31,7 +32,7 @@ async function JadwalContent() {
     .from("class_members")
     .select(`
       classes!inner(
-        id, name, status, capacity,
+        id, name, status, capacity, tujuan_title, program_url,
         branches(name),
         class_schedules(day_of_week, start_time, end_time),
         class_coaches(coaches(coach_profiles(full_name)))
@@ -41,7 +42,7 @@ async function JadwalContent() {
     .eq("status", "enrolled");
 
   // Group schedules by day of week
-  type ScheduleEntry = { className: string; startTime: string; endTime: string; branch: string; coaches: string[] };
+  type ScheduleEntry = { className: string; startTime: string; endTime: string; branch: string; coaches: string[]; tujuanTitle?: string | null; programUrl?: string | null };
   const byDay: Record<number, ScheduleEntry[]> = {};
 
   (enrollments ?? []).forEach((e) => {
@@ -62,6 +63,8 @@ async function JadwalContent() {
         endTime: s.end_time,
         branch: branch?.name ?? "—",
         coaches,
+        tujuanTitle: (cls as any).tujuan_title ?? null,
+        programUrl: (cls as any).program_url ?? null,
       });
     });
   });
@@ -97,7 +100,7 @@ async function JadwalContent() {
                 {byDay[dow].map((s, i) => (
                   <div key={i} className="rounded-xl border px-4 py-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm">{s.className}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {formatTime(s.startTime)}–{formatTime(s.endTime)} · {s.branch}
@@ -106,6 +109,20 @@ async function JadwalContent() {
                           <p className="text-xs text-muted-foreground mt-0.5">
                             Pelatih: {s.coaches.join(", ")}
                           </p>
+                        )}
+                        {s.tujuanTitle && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">{s.tujuanTitle}</p>
+                        )}
+                        {s.programUrl && (
+                          <a
+                            href={s.programUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Lihat Program Latihan
+                          </a>
                         )}
                       </div>
                     </div>

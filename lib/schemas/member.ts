@@ -38,9 +38,13 @@ export const createMemberSchema = z.object({
 
   // Member record
   branch_id: z.string().uuid("Cabang tidak valid"),
-  type: z.enum(["regular", "affiliate"], { error: "Pilih jenis anggota" }),
+  type: z.enum(["regular", "affiliate", "private"], { error: "Pilih jenis anggota" }),
   payment_handling: z.enum(["individual", "covered_by_school"]).default("individual"),
   school_id: z.string().uuid().optional().or(z.literal("")),
+
+  // Private member package (only relevant when type === "private")
+  private_sessions_total: z.coerce.number().int().min(1).max(999).optional().or(z.literal("")),
+  private_package_price: z.coerce.number().min(0).optional().or(z.literal("")),
 
   // Optional: create auth account
   email: z

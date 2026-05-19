@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { AlertCircle, IdCard, Phone, Calendar, MapPin, Clock, Settings } from "lucide-react";
+import { AlertCircle, IdCard, Phone, Calendar, MapPin, Clock, Settings, BookOpen, CreditCard, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CoachQrDisplay } from "./coach-qr-display";
 import { CertificateSection } from "./certificate-section";
@@ -42,7 +42,7 @@ async function PageContent() {
     .from("coaches")
     .select(`
       id, coach_id_code, status,
-      coach_profiles(full_name, nickname, dob, gender, phone, photo_url, specializations),
+      coach_profiles(full_name, nickname, dob, gender, phone, photo_url, specializations, bio, alamat, pendidikan_nama, pendidikan_tahun, nomor_rekening, nama_bank),
       coach_branches!inner(branch_id, is_primary, branches(name)),
       coach_certificates(id, name, photo_url, issued_year, valid_until, no_expiry, approval_status, approval_notes)
     `)
@@ -73,6 +73,8 @@ async function PageContent() {
     id: string; full_name: string; nickname: string | null; dob: string | null;
     gender: string | null; photo_url: string | null; phone: string | null;
     specializations: string[] | null;
+    bio: string | null; alamat: string | null; pendidikan_nama: string | null;
+    pendidikan_tahun: number | null; nomor_rekening: string | null; nama_bank: string | null;
   } | null;
   const branchEntry = Array.isArray(coach.coach_branches) ? coach.coach_branches[0] : coach.coach_branches;
   const branch = Array.isArray(branchEntry?.branches) ? branchEntry.branches[0] : branchEntry?.branches;
@@ -147,6 +149,9 @@ async function PageContent() {
       {/* Info */}
       <div className="rounded-xl border bg-card p-4 space-y-3">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Informasi</p>
+        {profile?.bio && (
+          <p className="text-sm text-muted-foreground italic">{profile.bio}</p>
+        )}
         <InfoRow
           icon={Phone}
           label="No. HP"
@@ -163,6 +168,25 @@ async function PageContent() {
           icon={MapPin}
           label="Cabang"
           value={branch?.name ?? null}
+        />
+        <InfoRow
+          icon={MapPin}
+          label="Alamat"
+          value={profile?.alamat ?? null}
+        />
+        <InfoRow
+          icon={BookOpen}
+          label="Pendidikan"
+          value={profile?.pendidikan_nama
+            ? `${profile.pendidikan_nama}${profile.pendidikan_tahun ? ` (${profile.pendidikan_tahun})` : ""}`
+            : null}
+        />
+        <InfoRow
+          icon={CreditCard}
+          label="Rekening"
+          value={profile?.nomor_rekening
+            ? `${profile.nomor_rekening}${profile.nama_bank ? ` — ${profile.nama_bank}` : ""}`
+            : null}
         />
       </div>
 

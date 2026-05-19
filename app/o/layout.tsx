@@ -22,7 +22,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
       <Suspense fallback={<SidebarFallback />}>
         <OwnerSidebar />
       </Suspense>
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto animate-[--animate-page-in]">{children}</main>
     </div>
   );
 }

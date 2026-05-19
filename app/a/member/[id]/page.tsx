@@ -194,7 +194,20 @@ async function PageContent({ params }: PageProps) {
         </TabsList>
 
         <TabsContent value="profil" className="mt-4">
-          <MemberProfileTab member={member} profile={profile} branch={branch} email={email} />
+          <MemberProfileTab
+            member={{
+              id: member.id,
+              type: member.type,
+              payment_handling: member.payment_handling,
+              status: member.status,
+              private_sessions_total: (member as any).private_sessions_total ?? null,
+              private_sessions_used: (member as any).private_sessions_used ?? null,
+              private_package_price: (member as any).private_package_price ?? null,
+            }}
+            profile={profile}
+            branch={branch}
+            email={email}
+          />
         </TabsContent>
 
         <TabsContent value="kelas" className="mt-4">

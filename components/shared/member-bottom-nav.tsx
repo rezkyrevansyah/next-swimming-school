@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ClipboardList, FileText, UserCheck, UserCircle, Banknote } from "lucide-react";
+import { LayoutDashboard, ClipboardList, FileText, UserCircle, Banknote, CalendarOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/m/dashboard", label: "Beranda", icon: LayoutDashboard },
   { href: "/m/absensi", label: "Absensi", icon: ClipboardList },
+  { href: "/m/izin", label: "Izin", icon: CalendarOff },
   { href: "/m/rapot", label: "Rapot", icon: FileText },
   { href: "/m/pembayaran", label: "Tagihan", icon: Banknote },
-  { href: "/m/coach", label: "Pelatih", icon: UserCheck },
   { href: "/m/profil", label: "Profil", icon: UserCircle },
 ] as const;
 

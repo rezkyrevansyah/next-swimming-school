@@ -22,6 +22,9 @@ import {
   Award,
   MessageCircle,
   Banknote,
+  Receipt,
+  CalendarOff,
+  DollarSign,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -51,6 +54,9 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/a/finansial", label: "Finansial", icon: Banknote },
   { href: "/a/reminder", label: "Reminder WA", icon: MessageCircle },
   { href: "/a/coach/sertifikat", label: "Sertifikat Pelatih", icon: Award },
+  { href: "/a/invoice-coach", label: "Invoice Pelatih", icon: Receipt },
+  { href: "/a/tarif-coach", label: "Tarif Pelatih", icon: DollarSign },
+  { href: "/a/libur", label: "Hari Libur", icon: CalendarOff },
   { href: "/a/approval", label: "Edit Request", icon: CheckSquare },
   { href: "/a/log", label: "Log Aktivitas", icon: ScrollText },
 ];

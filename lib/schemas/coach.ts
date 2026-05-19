@@ -12,6 +12,14 @@ export const createCoachSchema = z.object({
   phone: z.string().max(20).optional().or(z.literal("")),
   specializations: z.string().optional().or(z.literal("")), // comma-separated
 
+  // Additional profile fields
+  alamat: z.string().max(500).optional().or(z.literal("")),
+  pendidikan_nama: z.string().max(200).optional().or(z.literal("")),
+  pendidikan_tahun: z.coerce.number().int().min(1970).max(2100).optional().or(z.literal("")),
+  nomor_rekening: z.string().max(50).optional().or(z.literal("")),
+  nama_bank: z.string().max(100).optional().or(z.literal("")),
+  bio: z.string().max(1000).optional().or(z.literal("")),
+
   // Account (required for coach)
   email: z.string().email("Format email tidak valid"),
   password: z
@@ -30,5 +38,13 @@ export const updateCoachSchema = createCoachSchema
     id: z.string().uuid(),
   });
 
+export const coachLeaveSchema = z.object({
+  class_id: z.string().uuid("Pilih kelas"),
+  leave_date: z.string().min(1, "Pilih tanggal"),
+  replacement_coach_id: z.string().uuid("Pilih pelatih pengganti"),
+  reason: z.string().max(500).optional().or(z.literal("")),
+});
+
 export type CreateCoachInput = z.infer<typeof createCoachSchema>;
 export type UpdateCoachInput = z.infer<typeof updateCoachSchema>;
+export type CoachLeaveInput = z.infer<typeof coachLeaveSchema>;

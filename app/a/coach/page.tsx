@@ -80,6 +80,15 @@ async function PageContent({ searchParams }: PageProps) {
 
   const { data: coaches, count, error } = await query;
 
+  // Fetch currently active suspensions
+  const now = new Date().toISOString();
+  const { data: suspensions } = await supabase
+    .from("coach_suspensions")
+    .select("coach_id")
+    .is("lifted_at", null)
+    .gt("resume_at", now);
+  const suspendedCoachIds = new Set((suspensions ?? []).map((s) => s.coach_id));
+
   if (error) {
     return (
       <div className="p-6">
@@ -171,9 +180,16 @@ async function PageContent({ searchParams }: PageProps) {
                       {profile?.specializations?.join(", ") || "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={STATUS_VARIANT[c.status] ?? "outline"}>
-                        {STATUS_LABEL[c.status] ?? c.status}
-                      </Badge>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge variant={STATUS_VARIANT[c.status] ?? "outline"}>
+                          {STATUS_LABEL[c.status] ?? c.status}
+                        </Badge>
+                        {suspendedCoachIds.has(c.id) && (
+                          <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                            Suspended
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -208,9 +224,16 @@ async function PageContent({ searchParams }: PageProps) {
                     {profile?.specializations?.length ? " · " + profile.specializations[0] : ""}
                   </p>
                 </div>
-                <Badge variant={STATUS_VARIANT[c.status] ?? "outline"} className="shrink-0 ml-3">
-                  {STATUS_LABEL[c.status] ?? c.status}
-                </Badge>
+                <div className="flex flex-col items-end gap-1 shrink-0 ml-3">
+                  <Badge variant={STATUS_VARIANT[c.status] ?? "outline"}>
+                    {STATUS_LABEL[c.status] ?? c.status}
+                  </Badge>
+                  {suspendedCoachIds.has(c.id) && (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 text-xs">
+                      Suspended
+                    </Badge>
+                  )}
+                </div>
               </Link>
             );
           })

@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
+import { getCachedActiveClasses } from "@/lib/cache/master-data";
 
 const STATUS_LABEL: Record<string, string> = {
   present: "Hadir",
@@ -99,13 +100,8 @@ async function AbsensiContent({
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  // Fetch active classes for filter dropdown
-  const { data: classes } = await supabase
-    .from("classes")
-    .select("id, name")
-    .eq("status", "active")
-    .is("deleted_at", null)
-    .order("name");
+  // Fetch active classes for filter dropdown (cached)
+  const classes = await getCachedActiveClasses();
 
   let query = supabase
     .from("attendance_records")
@@ -172,7 +168,7 @@ async function AbsensiContent({
           className="col-span-2 md:col-span-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">Semua Kelas</option>
-          {(classes ?? []).map((c) => (
+          {classes.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>

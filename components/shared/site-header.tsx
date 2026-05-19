@@ -24,6 +24,7 @@ export function SiteHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setDrawerOpen(false); }, [pathname]);
 
   useEffect(() => {

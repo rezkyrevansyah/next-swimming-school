@@ -55,3 +55,18 @@ export const updateInvoiceNotesSchema = z.object({
 });
 
 export type UpdateInvoiceNotesInput = z.infer<typeof updateInvoiceNotesSchema>;
+
+// ============================================================================
+// Apply Discount Schema
+// ============================================================================
+export const applyDiscountSchema = z.object({
+  invoice_id: z.string().uuid(),
+  discount_type: z.enum(["nominal", "percent"]),
+  discount_value: z.coerce
+    .number()
+    .min(0, "Nilai diskon tidak boleh negatif")
+    .refine((v) => v >= 0, "Nilai diskon tidak valid"),
+  discount_reason: z.string().max(300).optional().or(z.literal("")),
+});
+
+export type ApplyDiscountInput = z.infer<typeof applyDiscountSchema>;

@@ -60,6 +60,7 @@ export async function createClass(
 
   revalidatePath("/a/kelas");
   revalidateTag(`stats-admin-${branch_id}`, "minutes");
+  revalidateTag("classes", "max");
   return { data: cls };
 }
 
@@ -75,7 +76,7 @@ export async function updateClass(
     return { error: "Data tidak valid.", fieldErrors: parsed.error.flatten() };
   }
 
-  const { id, age_range_min, age_range_max, description, location_name, ...rest } =
+  const { id, age_range_min, age_range_max, description, location_name, tujuan_title, tujuan_description, program_url, ...rest } =
     parsed.data;
 
   const updateData: Record<string, unknown> = { ...rest };
@@ -83,6 +84,9 @@ export async function updateClass(
   if (location_name !== undefined) updateData.location_name = location_name || null;
   if (age_range_min !== undefined) updateData.age_range_min = age_range_min ?? null;
   if (age_range_max !== undefined) updateData.age_range_max = age_range_max ?? null;
+  if (tujuan_title !== undefined) updateData.tujuan_title = tujuan_title || null;
+  if (tujuan_description !== undefined) updateData.tujuan_description = tujuan_description || null;
+  if (program_url !== undefined) updateData.program_url = program_url || null;
 
   const { data: updated, error } = await supabase
     .from("classes")
@@ -95,7 +99,52 @@ export async function updateClass(
 
   revalidatePath("/a/kelas");
   revalidatePath(`/a/kelas/${id}`);
+  revalidateTag("classes", "max");
   return { data: updated };
+}
+
+export async function updateClassProgramUrl(
+  classId: string,
+  url: string
+): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  // Verify coach is assigned to this class
+  const { data: coach } = await supabase
+    .from("coaches")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!coach) return { error: "Profil pelatih tidak ditemukan." };
+
+  const { data: access } = await supabase
+    .from("class_coaches")
+    .select("class_id")
+    .eq("class_id", classId)
+    .eq("coach_id", coach.id)
+    .maybeSingle();
+
+  if (!access) return { error: "Kamu tidak memiliki akses ke kelas ini." };
+
+  const parsed = url.trim();
+  if (parsed && !/^https?:\/\/.+/.test(parsed)) {
+    return { error: "URL tidak valid. Gunakan format https://..." };
+  }
+
+  const { error } = await supabase
+    .from("classes")
+    .update({ program_url: parsed || null })
+    .eq("id", classId);
+
+  if (error) return { error: `Gagal menyimpan URL: ${error.message}` };
+
+  revalidatePath(`/c/kelas/${classId}`);
+  revalidatePath(`/a/kelas/${classId}`);
+  return { data: undefined };
 }
 
 export async function softDeleteClass(id: string): Promise<ActionResult> {
@@ -110,6 +159,7 @@ export async function softDeleteClass(id: string): Promise<ActionResult> {
   if (error) return { error: `Gagal mengarsipkan kelas: ${error.message}` };
 
   revalidatePath("/a/kelas");
+  revalidateTag("classes", "max");
   return { data: undefined };
 }
 
@@ -124,6 +174,7 @@ export async function restoreClass(id: string): Promise<ActionResult> {
   if (error) return { error: `Gagal memulihkan kelas: ${error.message}` };
 
   revalidatePath("/a/kelas");
+  revalidateTag("classes", "max");
   return { data: undefined };
 }
 

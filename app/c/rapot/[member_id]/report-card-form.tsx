@@ -8,15 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { upsertReportCard, publishReportCard } from "@/lib/actions/rapot";
 
-// Default swimming skills to assess
-const DEFAULT_SKILLS = [
-  { key: "teknik_dasar", label: "Teknik Dasar" },
-  { key: "teknik_napas", label: "Teknik Napas" },
-  { key: "koordinasi", label: "Koordinasi Gerak" },
-  { key: "kecepatan", label: "Kecepatan" },
-  { key: "ketahanan", label: "Ketahanan" },
-  { key: "kedisiplinan", label: "Kedisiplinan" },
-];
 
 const SCORE_LABELS: Record<number, string> = {
   1: "1 - Perlu Banyak Latihan",
@@ -50,6 +41,12 @@ interface ExistingReport {
   status: string;
 }
 
+interface SkillCriterion {
+  key: string;
+  label: string;
+  description?: string | null;
+}
+
 interface Props {
   memberId: string;
   classId: string;
@@ -61,11 +58,12 @@ interface Props {
   attendanceStats: AttendanceStats;
   existing: ExistingReport | null;
   canEdit: boolean;
+  skillCriteria: SkillCriterion[];
 }
 
 export function ReportCardForm({
   memberId, classId, semesterId, coachId,
-  memberName, attendanceStats, existing, canEdit,
+  memberName, attendanceStats, existing, canEdit, skillCriteria,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -172,9 +170,14 @@ export function ReportCardForm({
       {/* Skill assessment */}
       <div className="space-y-3">
         <h2 className="font-semibold text-sm">Penilaian Kemampuan</h2>
-        {DEFAULT_SKILLS.map((skill) => (
+        {skillCriteria.map((skill) => (
           <div key={skill.key} className="space-y-1.5">
-            <Label className="text-sm">{skill.label}</Label>
+            <Label className="text-sm">
+              {skill.label}
+              {skill.description && (
+                <span className="ml-1.5 text-xs text-muted-foreground font-normal">({skill.description})</span>
+              )}
+            </Label>
             <select
               value={skillScores[skill.key] ?? ""}
               onChange={(e) => {

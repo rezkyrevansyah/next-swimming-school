@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ClipboardList, Clock, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { LeaveRequestDialog } from "./leave-request-dialog";
 
 const DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
@@ -120,6 +121,30 @@ async function AbsensiHubContent() {
     });
   }
 
+  // Fetch active coaches in same branch for replacement dropdown (exclude self)
+  const { data: branchCoaches } = await supabase
+    .from("coach_branches")
+    .select("coach_id, coaches!inner(id, status, deleted_at, coach_profiles(full_name))")
+    .eq("branch_id", branchId ?? "")
+    .neq("coach_id", coach.id);
+
+  const replacementCoaches = (branchCoaches ?? [])
+    .map((bc) => {
+      const c = Array.isArray(bc.coaches) ? bc.coaches[0] : bc.coaches;
+      const cp = Array.isArray(c?.coach_profiles) ? c.coach_profiles[0] : c?.coach_profiles;
+      return { id: bc.coach_id, full_name: cp?.full_name ?? "—" };
+    })
+    .filter((c) => c.full_name !== "—");
+
+  // Fetch today's submitted leave requests by this coach
+  const { data: todayLeaves } = await supabase
+    .from("coach_leaves")
+    .select("id, class_id")
+    .eq("coach_id", coach.id)
+    .eq("leave_date", todayDate);
+
+  const leavedClassIds = new Set((todayLeaves ?? []).map((l) => l.class_id));
+
   return (
     <div className="p-4 space-y-4 max-w-lg mx-auto">
       <div className="pt-2">
@@ -158,34 +183,52 @@ async function AbsensiHubContent() {
           <div className="space-y-2">
             {todayClasses.map((cls) => {
               const count = attendanceCounts[cls.id] ?? 0;
+              const hasLeave = leavedClassIds.has(cls.id);
               return (
-                <Link
-                  key={cls.id}
-                  href={hasClockedIn ? `/c/absensi/${cls.id}` : "#"}
-                  className={cn(
-                    "flex items-center justify-between rounded-xl border px-4 py-3 transition-colors",
-                    hasClockedIn
-                      ? "hover:bg-muted/50 cursor-pointer"
-                      : "opacity-50 cursor-not-allowed"
-                  )}
-                  onClick={!hasClockedIn ? (e) => e.preventDefault() : undefined}
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{cls.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      <Clock className="inline h-3 w-3 mr-1" />
-                      {formatTime(cls.startTime)} – {formatTime(cls.endTime)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-3">
-                    {count > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {count} hadir
+                <div key={cls.id} className="rounded-xl border overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{cls.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        <Clock className="inline h-3 w-3 mr-1" />
+                        {formatTime(cls.startTime)} – {formatTime(cls.endTime)}
+                        {count > 0 && <span className="ml-2">{count} hadir</span>}
+                      </p>
+                    </div>
+                    {hasLeave && (
+                      <Badge variant="secondary" className="text-xs shrink-0 ml-3 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                        Izin
                       </Badge>
                     )}
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
                   </div>
-                </Link>
+                  <div className="flex border-t">
+                    <Link
+                      href={hasClockedIn ? `/c/absensi/${cls.id}` : "#"}
+                      onClick={!hasClockedIn ? (e) => e.preventDefault() : undefined}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors border-r",
+                        hasClockedIn
+                          ? "hover:bg-muted/50 text-foreground"
+                          : "opacity-40 cursor-not-allowed text-muted-foreground"
+                      )}
+                    >
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      Buka Absensi
+                    </Link>
+                    {hasLeave ? (
+                      <div className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs text-muted-foreground">
+                        Izin sudah diajukan
+                      </div>
+                    ) : (
+                      <LeaveRequestDialog
+                        classId={cls.id}
+                        className={cls.name}
+                        leaveDate={todayDate}
+                        replacementCoaches={replacementCoaches}
+                      />
+                    )}
+                  </div>
+                </div>
               );
             })}
           </div>

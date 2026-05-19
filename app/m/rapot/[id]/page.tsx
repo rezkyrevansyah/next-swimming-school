@@ -5,15 +5,8 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ReviewCoachSection } from "./review-coach-section";
 
-const SKILL_LABELS: Record<string, string> = {
-  teknik_dasar: "Teknik Dasar",
-  teknik_napas: "Teknik Napas",
-  koordinasi: "Koordinasi Gerak",
-  kecepatan: "Kecepatan",
-  ketahanan: "Ketahanan",
-  kedisiplinan: "Kedisiplinan",
-};
 
 function SkillBar({ score }: { score: number }) {
   return (
@@ -71,7 +64,7 @@ async function PageContent({ params }: PageProps) {
       sessions_permitted, sessions_sick, sessions_absent,
       skill_scores, coach_notes, goals_achieved, next_goals,
       semesters(name, start_date, end_date),
-      classes(name),
+      classes(name, branch_id),
       coaches(id, coach_profiles(full_name, phone))
     `)
     .eq("id", id)
@@ -81,8 +74,33 @@ async function PageContent({ params }: PageProps) {
 
   if (!report) notFound();
 
+  // Fetch existing review for this report card
+  const { data: existingReview } = await supabase
+    .from("coach_reviews")
+    .select("id, rating, comment, edited_at, created_at")
+    .eq("report_card_id", id)
+    .eq("member_id", member.id)
+    .maybeSingle();
+
   const semester = Array.isArray(report.semesters) ? report.semesters[0] : report.semesters;
   const cls = Array.isArray(report.classes) ? report.classes[0] : report.classes;
+
+  // Fetch dynamic skill criteria for this branch
+  const { data: skillCriteriaData } = cls?.branch_id
+    ? await supabase
+        .from("skill_criteria")
+        .select("key, label")
+        .eq("branch_id", cls.branch_id)
+        .eq("is_active", true)
+        .order("sort_order")
+    : { data: null };
+
+  const skillLabelMap: Record<string, string> = {};
+  (skillCriteriaData ?? []).forEach((c) => { skillLabelMap[c.key] = c.label; });
+  // Fallback to key if not found
+  function getSkillLabel(key: string) {
+    return skillLabelMap[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  }
   const coach = Array.isArray(report.coaches) ? report.coaches[0] : report.coaches;
   const coachProfile = Array.isArray(coach?.coach_profiles) ? coach.coach_profiles[0] : coach?.coach_profiles;
   const skills = (report.skill_scores as Record<string, number>) ?? {};
@@ -137,7 +155,7 @@ async function PageContent({ params }: PageProps) {
           <div className="space-y-2.5">
             {Object.entries(skills).map(([key, score]) => (
               <div key={key} className="flex items-center justify-between">
-                <span className="text-sm">{SKILL_LABELS[key] ?? key}</span>
+                <span className="text-sm">{getSkillLabel(key)}</span>
                 <SkillBar score={score} />
               </div>
             ))}
@@ -168,6 +186,13 @@ async function PageContent({ params }: PageProps) {
           <p className="text-sm text-muted-foreground whitespace-pre-line">{report.coach_notes}</p>
         </div>
       )}
+
+      {/* Review coach */}
+      <ReviewCoachSection
+        reportCardId={report.id}
+        coachName={coachProfile?.full_name ?? "Pelatih"}
+        existingReview={existingReview ?? null}
+      />
 
       {/* Contact coach */}
       {coachProfile?.phone && (

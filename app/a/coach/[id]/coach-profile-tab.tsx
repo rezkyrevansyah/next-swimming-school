@@ -9,6 +9,7 @@ import { updateCoach } from "@/lib/actions/coach";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -33,6 +34,12 @@ interface Props {
     gender?: string | null;
     phone?: string | null;
     specializations?: string[] | null;
+    alamat?: string | null;
+    pendidikan_nama?: string | null;
+    pendidikan_tahun?: number | null;
+    nomor_rekening?: string | null;
+    nama_bank?: string | null;
+    bio?: string | null;
   } | null;
   email: string | null;
   branches: Branch[];
@@ -54,6 +61,12 @@ export function CoachProfileTab({ coach, profile, email, branches }: Props) {
         gender: (profile?.gender as "male" | "female") ?? undefined,
         phone: profile?.phone ?? "",
         specializations: profile?.specializations?.join(", ") ?? "",
+        alamat: profile?.alamat ?? "",
+        pendidikan_nama: profile?.pendidikan_nama ?? "",
+        pendidikan_tahun: profile?.pendidikan_tahun ?? undefined,
+        nomor_rekening: profile?.nomor_rekening ?? "",
+        nama_bank: profile?.nama_bank ?? "",
+        bio: profile?.bio ?? "",
       },
     });
 
@@ -125,6 +138,30 @@ export function CoachProfileTab({ coach, profile, email, branches }: Props) {
               <dt className="text-muted-foreground">Spesialisasi</dt>
               <dd className="mt-0.5">
                 {profile?.specializations?.join(", ") || "—"}
+              </dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-muted-foreground">Bio</dt>
+              <dd className="mt-0.5">{profile?.bio || "—"}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-muted-foreground">Alamat</dt>
+              <dd className="mt-0.5">{profile?.alamat || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Pendidikan</dt>
+              <dd className="mt-0.5">
+                {profile?.pendidikan_nama
+                  ? `${profile.pendidikan_nama}${profile.pendidikan_tahun ? ` (${profile.pendidikan_tahun})` : ""}`
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Rekening</dt>
+              <dd className="mt-0.5">
+                {profile?.nomor_rekening
+                  ? `${profile.nomor_rekening}${profile.nama_bank ? ` — ${profile.nama_bank}` : ""}`
+                  : "—"}
               </dd>
             </div>
             <div>
@@ -212,6 +249,36 @@ export function CoachProfileTab({ coach, profile, email, branches }: Props) {
               {...register("specializations")}
               placeholder="Gaya bebas, Gaya punggung"
             />
+          </div>
+
+          <div className="sm:col-span-2 space-y-1.5">
+            <Label htmlFor="bio">Bio</Label>
+            <Textarea id="bio" {...register("bio")} rows={3} placeholder="Deskripsi singkat pelatih..." />
+          </div>
+
+          <div className="sm:col-span-2 space-y-1.5">
+            <Label htmlFor="alamat">Alamat</Label>
+            <Textarea id="alamat" {...register("alamat")} rows={2} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="pendidikan_nama">Pendidikan (Nama Instansi)</Label>
+            <Input id="pendidikan_nama" {...register("pendidikan_nama")} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="pendidikan_tahun">Tahun Lulus</Label>
+            <Input id="pendidikan_tahun" type="number" {...register("pendidikan_tahun")} min={1970} max={2100} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="nomor_rekening">Nomor Rekening</Label>
+            <Input id="nomor_rekening" {...register("nomor_rekening")} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="nama_bank">Nama Bank</Label>
+            <Input id="nama_bank" {...register("nama_bank")} />
           </div>
         </CardContent>
       </Card>

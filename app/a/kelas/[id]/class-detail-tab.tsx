@@ -16,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ClassData {
@@ -30,6 +32,9 @@ interface ClassData {
   age_range_min?: number | null;
   age_range_max?: number | null;
   location_name?: string | null;
+  tujuan_title?: string | null;
+  tujuan_description?: string | null;
+  program_url?: string | null;
 }
 
 interface Props {
@@ -65,6 +70,9 @@ export function ClassDetailTab({ cls, branch }: Props) {
         age_range_min: cls.age_range_min ?? undefined,
         age_range_max: cls.age_range_max ?? undefined,
         location_name: cls.location_name ?? "",
+        tujuan_title: cls.tujuan_title ?? "",
+        tujuan_description: cls.tujuan_description ?? "",
+        program_url: cls.program_url ?? "",
       },
     });
 
@@ -145,6 +153,30 @@ export function ClassDetailTab({ cls, branch }: Props) {
                         : "—"}
                 </dd>
               </div>
+              <div className="sm:col-span-2">
+                <dt className="text-muted-foreground">Tujuan Kelas</dt>
+                <dd className="font-medium mt-0.5">{cls.tujuan_title || "—"}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-muted-foreground">Deskripsi Tujuan</dt>
+                <dd className="mt-0.5 whitespace-pre-wrap text-sm">{cls.tujuan_description || "—"}</dd>
+              </div>
+              {cls.program_url && (
+                <div className="sm:col-span-2">
+                  <dt className="text-muted-foreground mb-1">Program Latihan</dt>
+                  <dd>
+                    <a
+                      href={cls.program_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Lihat Spreadsheet Program
+                    </a>
+                  </dd>
+                </div>
+              )}
             </dl>
           </CardContent>
         </Card>
@@ -250,6 +282,28 @@ export function ClassDetailTab({ cls, branch }: Props) {
               min={0}
               {...register("age_range_max")}
               placeholder="Opsional"
+            />
+          </div>
+
+          <div className="sm:col-span-2 space-y-1.5">
+            <Label htmlFor="tujuan_title">Tujuan Kelas</Label>
+            <Input
+              id="tujuan_title"
+              {...register("tujuan_title")}
+              placeholder="Contoh: Menguasai gaya bebas dasar"
+            />
+            {errors.tujuan_title && (
+              <p className="text-xs text-destructive">{errors.tujuan_title.message}</p>
+            )}
+          </div>
+
+          <div className="sm:col-span-2 space-y-1.5">
+            <Label htmlFor="tujuan_description">Deskripsi Tujuan</Label>
+            <Textarea
+              id="tujuan_description"
+              {...register("tujuan_description")}
+              rows={3}
+              placeholder="Jelaskan tujuan dan target pencapaian kelas ini..."
             />
           </div>
         </CardContent>

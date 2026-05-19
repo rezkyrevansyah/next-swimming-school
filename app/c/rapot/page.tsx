@@ -150,7 +150,12 @@ async function CoachRapotContent() {
   return (
     <div className="p-4 space-y-4 max-w-lg mx-auto pb-24">
       <div className="pt-2">
-        <h1 className="text-xl font-semibold">Rapot Siswa</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Rapot Siswa</h1>
+          <Link href="/c/rapot/riwayat" className="text-xs text-primary hover:underline">
+            Riwayat →
+          </Link>
+        </div>
         <p className="text-muted-foreground text-sm mt-0.5">Input penilaian semester</p>
       </div>
 

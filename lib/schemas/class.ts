@@ -31,6 +31,9 @@ export const createClassSchema = z.object({
   age_range_max: ageRangeField,
   location_name: z.string().max(200).optional().or(z.literal("")),
   status: z.enum(["active", "inactive"]).default("active"),
+  tujuan_title: z.string().max(200).optional().or(z.literal("")),
+  tujuan_description: z.string().max(1000).optional().or(z.literal("")),
+  program_url: z.string().url("URL tidak valid").optional().or(z.literal("")),
 });
 
 export const updateClassSchema = z.object({
@@ -46,6 +49,9 @@ export const updateClassSchema = z.object({
   age_range_max: ageRangeField,
   location_name: z.string().max(200).optional().or(z.literal("")),
   status: z.enum(["active", "inactive"]).optional(),
+  tujuan_title: z.string().max(200).optional().or(z.literal("")),
+  tujuan_description: z.string().max(1000).optional().or(z.literal("")),
+  program_url: z.string().url("URL tidak valid").optional().or(z.literal("")),
 });
 
 export const scheduleItemSchema = z.object({

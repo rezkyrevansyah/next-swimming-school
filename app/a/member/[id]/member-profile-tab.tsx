@@ -24,6 +24,9 @@ interface Props {
     type: string;
     payment_handling: string;
     status: string;
+    private_sessions_total?: number | null;
+    private_sessions_used?: number | null;
+    private_package_price?: number | null;
   };
   profile: {
     full_name: string;
@@ -74,14 +77,17 @@ export function MemberProfileTab({ member, profile, branch, email }: Props) {
       parent_phone: profile?.parent_phone ?? "",
       address: profile?.address ?? "",
       health_history: profile?.health_history ?? "",
-      type: (member.type as "regular" | "affiliate") ?? "regular",
+      type: (member.type as "regular" | "affiliate" | "private") ?? "regular",
       payment_handling:
         (member.payment_handling as "individual" | "covered_by_school") ??
         "individual",
+      private_sessions_total: member.private_sessions_total ?? undefined,
+      private_package_price: member.private_package_price ?? undefined,
     },
   });
 
   const phoneOwner = watch("phone_owner");
+  const memberType = watch("type");
 
   function onSubmit(data: UpdateMemberInput) {
     startTransition(async () => {
@@ -189,7 +195,7 @@ export function MemberProfileTab({ member, profile, branch, email }: Props) {
               <div>
                 <dt className="text-muted-foreground">Tipe</dt>
                 <dd className="mt-0.5 capitalize">
-                  {member.type === "regular" ? "Reguler" : "Afiliasi"}
+                  {member.type === "regular" ? "Reguler" : member.type === "affiliate" ? "Afiliasi" : "Private"}
                 </dd>
               </div>
               <div>
@@ -200,6 +206,33 @@ export function MemberProfileTab({ member, profile, branch, email }: Props) {
                     : "Ditanggung Sekolah"}
                 </dd>
               </div>
+              {member.type === "private" && (
+                <>
+                  <div>
+                    <dt className="text-muted-foreground">Sesi Paket</dt>
+                    <dd className="mt-0.5 font-medium">
+                      {member.private_sessions_used ?? 0} / {member.private_sessions_total ?? "—"} sesi
+                      {member.private_sessions_total && (
+                        <span className={`ml-2 text-xs ${
+                          (member.private_sessions_total - (member.private_sessions_used ?? 0)) <= 1
+                            ? "text-destructive font-semibold"
+                            : "text-muted-foreground"
+                        }`}>
+                          (sisa {member.private_sessions_total - (member.private_sessions_used ?? 0)})
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Harga Paket</dt>
+                    <dd className="mt-0.5">
+                      {member.private_package_price
+                        ? `Rp ${member.private_package_price.toLocaleString("id-ID")}`
+                        : "—"}
+                    </dd>
+                  </div>
+                </>
+              )}
             </dl>
           </CardContent>
         </Card>
@@ -305,7 +338,7 @@ export function MemberProfileTab({ member, profile, branch, email }: Props) {
             <Select
               defaultValue={member.type}
               onValueChange={(v) =>
-                setValue("type", v as "regular" | "affiliate")
+                setValue("type", v as "regular" | "affiliate" | "private", { shouldValidate: true })
               }
             >
               <SelectTrigger className="w-full">
@@ -314,6 +347,7 @@ export function MemberProfileTab({ member, profile, branch, email }: Props) {
               <SelectContent>
                 <SelectItem value="regular">Reguler</SelectItem>
                 <SelectItem value="affiliate">Afiliasi (Sekolah)</SelectItem>
+                <SelectItem value="private">Private (1-on-1)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -338,6 +372,32 @@ export function MemberProfileTab({ member, profile, branch, email }: Props) {
               </SelectContent>
             </Select>
           </div>
+
+          {memberType === "private" && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="private_sessions_total">Total Sesi Paket</Label>
+                <Input
+                  id="private_sessions_total"
+                  type="number"
+                  min="1"
+                  max="999"
+                  {...register("private_sessions_total")}
+                  placeholder="Contoh: 12"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="private_package_price">Harga Paket (Rp)</Label>
+                <Input
+                  id="private_package_price"
+                  type="number"
+                  min="0"
+                  {...register("private_package_price")}
+                  placeholder="Contoh: 1500000"
+                />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

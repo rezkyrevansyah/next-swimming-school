@@ -12,6 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RecordPaymentForm } from "./record-payment-form";
 import { DeletePaymentButton } from "./delete-payment-button";
+import { ApplyDiscountForm } from "./apply-discount-form";
 
 // ============================================================================
 // Helpers
@@ -240,6 +241,24 @@ async function InvoiceDetailContent({ params }: PageProps) {
             <span className="text-muted-foreground">Total Tagihan</span>
             <span className="font-semibold">{formatRupiah(invoice.total_amount ?? 0)}</span>
           </div>
+          {(invoice as any).discount_value > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                Diskon{" "}
+                {(invoice as any).discount_type === "percent"
+                  ? `${(invoice as any).discount_value}%`
+                  : ""}
+                {(invoice as any).discount_reason && (
+                  <span className="ml-1 text-xs italic">({(invoice as any).discount_reason})</span>
+                )}
+              </span>
+              <span className="text-amber-600">
+                -{(invoice as any).discount_type === "percent"
+                  ? formatRupiah((invoice.total_amount ?? 0) * ((invoice as any).discount_value / 100))
+                  : formatRupiah((invoice as any).discount_value)}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Sudah Dibayar</span>
             <span className="text-green-700">{formatRupiah(invoice.amount_paid ?? 0)}</span>
@@ -326,6 +345,18 @@ async function InvoiceDetailContent({ params }: PageProps) {
           </div>
         )}
       </div>
+
+      {/* Discount */}
+      {invoice.status !== "paid" && (
+        <ApplyDiscountForm
+          invoiceId={invoice_id}
+          currentDiscount={{
+            type: (invoice as any).discount_type ?? null,
+            value: (invoice as any).discount_value ?? 0,
+            reason: (invoice as any).discount_reason ?? null,
+          }}
+        />
+      )}
 
       {/* Record payment form */}
       <RecordPaymentForm

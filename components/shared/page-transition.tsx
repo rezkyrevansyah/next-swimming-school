@@ -1,20 +1,18 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useRef } from "react";
+import { useState } from "react";
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const key = useRef(0);
-  const prevPath = useRef(pathname);
+  const [{ key, prevPath }, setState] = useState({ key: 0, prevPath: pathname });
 
-  if (prevPath.current !== pathname) {
-    prevPath.current = pathname;
-    key.current += 1;
+  if (prevPath !== pathname) {
+    setState((s) => ({ key: s.key + 1, prevPath: pathname }));
   }
 
   return (
-    <div key={key.current} style={{ animation: "pageIn 0.22s ease-out both" }}>
+    <div key={key} style={{ animation: "pageIn 0.22s ease-out both" }}>
       {children}
       <style>{`
         @keyframes pageIn {

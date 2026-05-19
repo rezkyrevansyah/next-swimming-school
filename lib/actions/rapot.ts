@@ -172,3 +172,78 @@ export async function publishReportCard(reportCardId: string): Promise<ActionRes
   revalidatePath("/m/rapot");
   return { data: undefined };
 }
+
+// ============================================================================
+// Skill criteria actions
+// ============================================================================
+
+export async function createSkillCriteria(formData: FormData): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const branch_id = formData.get("branch_id") as string;
+  const label = (formData.get("label") as string)?.trim();
+  const description = (formData.get("description") as string)?.trim() || null;
+
+  if (!branch_id || !label) return { error: "Label wajib diisi." };
+
+  // Generate key from label: lowercase, spaces → underscore, strip non-alphanumeric
+  const key = label.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+  if (!key) return { error: "Label tidak valid untuk dijadikan key." };
+
+  // Get max sort_order for this branch
+  const { data: existing } = await supabase
+    .from("skill_criteria")
+    .select("sort_order")
+    .eq("branch_id", branch_id)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const sort_order = (existing?.[0]?.sort_order ?? 0) + 1;
+
+  const { error } = await supabase.from("skill_criteria").insert({
+    branch_id, key, label, description, sort_order,
+  });
+  if (error) {
+    if (error.code === "23505") return { error: `Kriteria dengan key "${key}" sudah ada.` };
+    return { error: error.message };
+  }
+
+  revalidatePath("/a/semester");
+  return { data: undefined };
+}
+
+export async function updateSkillCriteria(
+  id: string,
+  updates: { label?: string; description?: string; is_active?: boolean }
+): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (updates.label !== undefined) payload.label = updates.label.trim();
+  if (updates.description !== undefined) payload.description = updates.description.trim() || null;
+  if (updates.is_active !== undefined) payload.is_active = updates.is_active;
+
+  const { error } = await supabase.from("skill_criteria").update(payload).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/a/semester");
+  return { data: undefined };
+}
+
+export async function deleteSkillCriteria(id: string): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const { error } = await supabase.from("skill_criteria").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/a/semester");
+  return { data: undefined };
+}
+
+export async function reorderSkillCriteria(
+  items: { id: string; sort_order: number }[]
+): Promise<ActionResult> {
+  const supabase = createClient(await cookies());
+  const updates = items.map(({ id, sort_order }) =>
+    supabase.from("skill_criteria").update({ sort_order }).eq("id", id)
+  );
+  await Promise.all(updates);
+  revalidatePath("/a/semester");
+  return { data: undefined };
+}

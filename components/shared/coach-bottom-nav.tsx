@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ClipboardList, BookOpen, Users, UserCircle } from "lucide-react";
+import { LayoutDashboard, ClipboardList, BookOpen, UserCircle, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/c/dashboard", label: "Beranda", icon: LayoutDashboard },
-  { href: "/c/member", label: "Anggota", icon: Users },
-  { href: "/c/kelas", label: "Kelas", icon: BookOpen },
   { href: "/c/absensi", label: "Absensi", icon: ClipboardList },
+  { href: "/c/invoice", label: "Invoice", icon: Receipt },
+  { href: "/c/kelas", label: "Kelas", icon: BookOpen },
   { href: "/c/profil", label: "Profil", icon: UserCircle },
 ] as const;
 

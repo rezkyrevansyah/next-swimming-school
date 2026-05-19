@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { SemesterActions } from "./semester-actions";
 import { CreateSemesterForm } from "./create-semester-form";
+import { SkillCriteriaSection } from "./skill-criteria-section";
 import { PaginationControls, DEFAULT_PAGE_SIZE } from "@/components/shared/pagination-controls";
+import { getCachedBranches } from "@/lib/cache/master-data";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -79,17 +81,18 @@ async function SemesterContent({
     return `/a/semester${s ? `?${s}` : ""}`;
   }
 
-  const [{ data: semesters, count }, { data: branches }] = await Promise.all([
+  const [{ data: semesters, count }, branches, { data: skillCriteria }] = await Promise.all([
     supabase
       .from("semesters")
       .select("id, name, start_date, end_date, input_deadline, status, branch_id, branches(name)", { count: "exact" })
       .order("start_date", { ascending: false })
       .range(from, to),
+    getCachedBranches(),
     supabase
-      .from("branches")
-      .select("id, name")
-      .eq("status", "active")
-      .is("deleted_at", null),
+      .from("skill_criteria")
+      .select("id, branch_id, key, label, description, sort_order, is_active")
+      .order("branch_id")
+      .order("sort_order"),
   ]);
 
   const totalPages = Math.ceil((count ?? 0) / pageSize);
@@ -106,7 +109,7 @@ async function SemesterContent({
       {/* Create form */}
       <div className="rounded-lg border bg-card p-4 md:p-6">
         <h2 className="font-semibold mb-4">Buat Semester Baru</h2>
-        <CreateSemesterForm branches={branches ?? []} />
+        <CreateSemesterForm branches={branches} />
       </div>
 
       {/* Semester list */}
@@ -149,6 +152,27 @@ async function SemesterContent({
         pageSize={pageSize}
         buildUrl={buildUrl}
       />
+
+      {/* Skill criteria per branch */}
+      {(branches).length > 0 && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="font-semibold">Kriteria Penilaian Rapot</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Kelola kriteria skill yang muncul di form rapot pelatih. Perubahan berlaku untuk rapot semester berikutnya.</p>
+          </div>
+          {(branches).map((b) => {
+            const branchCriteria = (skillCriteria ?? []).filter((c) => c.branch_id === b.id);
+            return (
+              <SkillCriteriaSection
+                key={b.id}
+                branchId={b.id}
+                branchName={b.name}
+                initialCriteria={branchCriteria}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
