@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getCurrentUserId } from "@/lib/utils/auth-helpers";
 import Link from "next/link";
 import { QrCode, ChevronRight, Phone, AlertCircle, Hourglass } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -357,19 +358,15 @@ function DashboardSkeleton() {
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────────
-export default function MemberDashboardPage() {
+export default async function MemberDashboardPage() {
+  const userId = await getCurrentUserId();
+  if (!userId) redirect("/login");
+
   return (
     <div className="p-4 space-y-4 max-w-lg mx-auto">
       <Suspense fallback={<DashboardSkeleton />}>
-        <MemberDashboardContentGated />
+        <MemberDashboardContent userId={userId} />
       </Suspense>
     </div>
   );
-}
-
-async function MemberDashboardContentGated() {
-  const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  return <MemberDashboardContent userId={user.id} />;
 }

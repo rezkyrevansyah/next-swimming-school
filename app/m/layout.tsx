@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { MemberBottomNav } from "@/components/shared/member-bottom-nav";
 import { LogoCircle } from "@/components/shared/logo";
 import { signOut } from "@/lib/actions/auth";
@@ -33,9 +32,7 @@ export default function MemberLayout({
       </header>
 
       <main className="flex-1 pb-16 animate-[--animate-page-in]">{children}</main>
-      <Suspense fallback={<div className="h-16 border-t bg-background" />}>
-        <MemberBottomNav />
-      </Suspense>
+      <MemberBottomNav />
     </div>
   );
 }

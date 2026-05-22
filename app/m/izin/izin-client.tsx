@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
@@ -31,14 +31,20 @@ interface LeaveRecord {
   class_name: string;
 }
 
+interface Props {
+  memberId: string;
+  initialClasses: EnrolledClass[];
+  initialLeaves: LeaveRecord[];
+}
+
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 }
 
-export function IzinClient() {
+export function IzinClient({ memberId, initialClasses, initialLeaves }: Props) {
   const supabase = createClient();
-  const [classes, setClasses] = useState<EnrolledClass[]>([]);
-  const [leaves, setLeaves] = useState<LeaveRecord[]>([]);
+  const [classes] = useState<EnrolledClass[]>(initialClasses);
+  const [leaves, setLeaves] = useState<LeaveRecord[]>(initialLeaves);
   const [selectedClass, setSelectedClass] = useState("");
   const [isPending, startTransition] = useTransition();
   const [cancelId, setCancelId] = useState<string | null>(null);
@@ -50,41 +56,14 @@ export function IzinClient() {
     defaultValues: { reason: "" },
   });
 
-  async function loadData() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: member } = await supabase
-      .from("members")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!member) return;
-
+  async function refreshLeaves() {
     const todayDate = new Date().toISOString().slice(0, 10);
-
-    const [{ data: enrollments }, { data: leaveData }] = await Promise.all([
-      supabase
-        .from("class_members")
-        .select("class_id, classes!inner(id, name)")
-        .eq("member_id", member.id)
-        .eq("status", "enrolled")
-        .eq("classes.status", "active"),
-      supabase
-        .from("member_leaves")
-        .select("id, class_id, leave_date, reason, classes(name)")
-        .eq("member_id", member.id)
-        .gte("leave_date", todayDate)
-        .order("leave_date", { ascending: true }),
-    ]);
-
-    setClasses(
-      (enrollments ?? []).map((e) => {
-        const cls = Array.isArray(e.classes) ? e.classes[0] : e.classes;
-        return { class_id: e.class_id, name: cls?.name ?? e.class_id };
-      })
-    );
+    const { data: leaveData } = await supabase
+      .from("member_leaves")
+      .select("id, class_id, leave_date, reason, classes(name)")
+      .eq("member_id", memberId)
+      .gte("leave_date", todayDate)
+      .order("leave_date", { ascending: true });
 
     setLeaves(
       (leaveData ?? []).map((l) => {
@@ -100,8 +79,6 @@ export function IzinClient() {
       })
     );
   }
-
-  useEffect(() => { loadData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function onSubmit(data: { class_id: string; leave_date: string; reason: string }) {
     if (!data.class_id) { toast.error("Pilih kelas terlebih dahulu"); return; }
@@ -121,7 +98,7 @@ export function IzinClient() {
       toast.success("Izin berhasil diajukan");
       reset({ reason: "", leave_date: "", class_id: "" });
       setSelectedClass("");
-      loadData();
+      await refreshLeaves();
     });
   }
 
@@ -135,7 +112,7 @@ export function IzinClient() {
         return;
       }
       toast.success("Izin dibatalkan");
-      loadData();
+      await refreshLeaves();
     });
   }
 

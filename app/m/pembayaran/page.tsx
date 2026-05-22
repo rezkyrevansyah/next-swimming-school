@@ -7,6 +7,7 @@ import { ChevronLeft, Banknote, AlertCircle, CheckCircle2, Clock } from "lucide-
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getCurrentUserId } from "@/lib/utils/auth-helpers";
 
 function formatRupiah(amount: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -38,24 +39,38 @@ const STATUS_ICON: Record<string, React.ElementType> = {
   paid: CheckCircle2,
 };
 
-export default function MemberPembayaranPage() {
+function PembayaranSkeleton() {
   return (
-    <Suspense>
-      <PembayaranContent />
+    <div className="p-4 max-w-lg mx-auto space-y-4 animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="h-8 w-8 bg-muted rounded-md" />
+        <div className="h-6 w-28 bg-muted rounded" />
+      </div>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+export default async function MemberPembayaranPage() {
+  const userId = await getCurrentUserId();
+  if (!userId) redirect("/login");
+
+  return (
+    <Suspense fallback={<PembayaranSkeleton />}>
+      <PembayaranContent userId={userId} />
     </Suspense>
   );
 }
 
-async function PembayaranContent() {
+async function PembayaranContent({ userId }: { userId: string }) {
   const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
-  // Get member
   const { data: member } = await supabase
     .from("members")
     .select("id, payment_handling, status")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
   if (!member || member.status !== "active") redirect("/login");

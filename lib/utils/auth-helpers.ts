@@ -1,5 +1,21 @@
 import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+
+/**
+ * Returns the current user's ID from the x-user-id header set by proxy.ts.
+ * Falls back to a Supabase getUser() call if the header is missing.
+ * Use this in page/layout Server Components instead of calling getUser() directly.
+ */
+export async function getCurrentUserId(): Promise<string | null> {
+  const h = await headers();
+  const fromHeader = h.get("x-user-id");
+  if (fromHeader) return fromHeader;
+
+  // Fallback: header missing (e.g. direct server invocation in tests)
+  const supabase = createClient(await cookies());
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
 
 /**
  * Returns the highest-level role name for the currently authenticated user.

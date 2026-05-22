@@ -43,6 +43,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Forward userId to page/layout via header — avoids re-calling getUser() on every page
+  if (user) {
+    supabaseResponse.headers.set("x-user-id", user.id);
+  }
+
   // Auth routes that must always be accessible (even when logged in)
   const AUTH_BYPASS = ["/auth/callback", "/auth/reset-password", "/lupa-password", "/reset-password"];
   if (AUTH_BYPASS.some((p) => pathname.startsWith(p))) {

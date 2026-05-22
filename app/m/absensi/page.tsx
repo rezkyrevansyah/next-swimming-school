@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { AbsensiFilter } from "./absensi-filter";
+import { getCurrentUserId } from "@/lib/utils/auth-helpers";
 
 interface PageProps {
   searchParams: Promise<{ bulan?: string; kelas?: string }>;
@@ -16,23 +17,39 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "dest
   present: "default", late: "secondary", permitted: "outline", sick: "outline", absent: "destructive",
 };
 
-export default function MemberAbsensiPage({ searchParams }: PageProps) {
+function AbsensiSkeleton() {
   return (
-    <Suspense>
-      <AbsensiContent searchParams={searchParams} />
+    <div className="p-4 space-y-4 max-w-lg mx-auto animate-pulse">
+      <div className="pt-2 space-y-1">
+        <div className="h-7 w-40 bg-muted rounded" />
+      </div>
+      <div className="h-10 bg-muted rounded-xl" />
+      <div className="h-24 bg-muted rounded-xl" />
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-16 bg-muted rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+export default async function MemberAbsensiPage({ searchParams }: PageProps) {
+  const userId = await getCurrentUserId();
+  if (!userId) redirect("/login");
+
+  return (
+    <Suspense fallback={<AbsensiSkeleton />}>
+      <AbsensiContent searchParams={searchParams} userId={userId} />
     </Suspense>
   );
 }
 
-async function AbsensiContent({ searchParams }: PageProps) {
+async function AbsensiContent({ searchParams, userId }: PageProps & { userId: string }) {
   const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
   const { data: member } = await supabase
     .from("members")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
   if (!member) redirect("/login");
 

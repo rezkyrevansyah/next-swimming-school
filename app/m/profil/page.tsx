@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { EditProfilForm } from "./edit-profil-form";
+import { getCurrentUserId } from "@/lib/utils/auth-helpers";
 
 const GENDER_LABEL: Record<string, string> = {
   male: "Laki-laki",
@@ -34,10 +35,8 @@ function SimpleSkeleton() {
   );
 }
 
-async function PageContent() {
+async function PageContent({ userId }: { userId: string }) {
   const supabase = createClient(await cookies());
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
   const { data: member } = await supabase
     .from("members")
@@ -46,7 +45,7 @@ async function PageContent() {
       branches(name),
       member_profiles(member_id, full_name, nickname, dob, gender, phone, phone_owner, parent_name, parent_phone, address, health_history)
     `)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
   if (!member) redirect("/login");
@@ -158,11 +157,14 @@ async function PageContent() {
   );
 }
 
-export default function MemberProfilPage() {
+export default async function MemberProfilPage() {
+  const userId = await getCurrentUserId();
+  if (!userId) redirect("/login");
+
   return (
     <div className="p-4 space-y-4 max-w-lg mx-auto">
       <Suspense fallback={<SimpleSkeleton />}>
-        <PageContent />
+        <PageContent userId={userId} />
       </Suspense>
     </div>
   );

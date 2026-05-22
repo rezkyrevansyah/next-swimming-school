@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FileText, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getCurrentUserId } from "@/lib/utils/auth-helpers";
 
 function RapotSkeleton() {
   return (
@@ -21,25 +22,24 @@ function RapotSkeleton() {
   );
 }
 
-export default function MemberRapotPage() {
+export default async function MemberRapotPage() {
+  const userId = await getCurrentUserId();
+  if (!userId) redirect("/login");
+
   return (
     <Suspense fallback={<RapotSkeleton />}>
-      <MemberRapotContent />
+      <MemberRapotContent userId={userId} />
     </Suspense>
   );
 }
 
-async function MemberRapotContent() {
+async function MemberRapotContent({ userId }: { userId: string }) {
   const supabase = createClient(await cookies());
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
   const { data: member } = await supabase
     .from("members")
     .select("id, status")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .single();
 
   if (!member || member.status !== "active") redirect("/login");
