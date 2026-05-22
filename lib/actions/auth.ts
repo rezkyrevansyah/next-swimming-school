@@ -27,6 +27,15 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
   }
 
   const supabase = createClient(await cookies());
+
+  // If already authenticated, skip sign-in and go straight to dashboard
+  const { data: { user: existingUser } } = await supabase.auth.getUser();
+  if (existingUser) {
+    const { data: roleData } = await supabase.rpc("user_role");
+    const destination = getRoleRedirectPath(roleData as string | null);
+    redirect(destination);
+  }
+
   const { error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
