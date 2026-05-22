@@ -42,8 +42,6 @@ export function IzinClient() {
   const [selectedClass, setSelectedClass] = useState("");
   const [isPending, startTransition] = useTransition();
   const [cancelId, setCancelId] = useState<string | null>(null);
-  const [today, setToday] = useState("");
-
   const { register, handleSubmit, reset, setValue } = useForm<{
     class_id: string;
     leave_date: string;
@@ -51,10 +49,6 @@ export function IzinClient() {
   }>({
     defaultValues: { reason: "" },
   });
-
-  useEffect(() => {
-    setToday(new Date().toISOString().slice(0, 10));
-  }, []);
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -73,9 +67,10 @@ export function IzinClient() {
     const [{ data: enrollments }, { data: leaveData }] = await Promise.all([
       supabase
         .from("class_members")
-        .select("class_id, classes(id, name)")
+        .select("class_id, classes!inner(id, name)")
         .eq("member_id", member.id)
-        .eq("status", "enrolled"),
+        .eq("status", "enrolled")
+        .eq("classes.status", "active"),
       supabase
         .from("member_leaves")
         .select("id, class_id, leave_date, reason, classes(name)")
@@ -184,7 +179,6 @@ export function IzinClient() {
           <Input
             id="leave_date"
             type="date"
-            min={today}
             {...register("leave_date")}
           />
         </div>
